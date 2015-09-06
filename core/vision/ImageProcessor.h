@@ -12,6 +12,8 @@
 #include <common/RobotCalibration.h>
 #include <vision/structures/BallCandidate.h>
 #include <math/Pose3D.h>
+#include <limits>
+
 
 /// @ingroup vision
 class ImageProcessor {
@@ -37,7 +39,9 @@ class ImageProcessor {
     BallCandidate* getBestBallCandidate();
     bool isImageLoaded();
     void detectBall();
-    void findBall(int& imageX, int& imageY);
+    void detectGoal();
+    bool findBall(int& imageX, int& imageY);
+    bool findGoal(int& imageX, int& imageY);
   private:
     int getTeamColor();
     double getCurrentTime();

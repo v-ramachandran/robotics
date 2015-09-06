@@ -107,13 +107,158 @@ void ImageProcessor::processFrame(){
   visionLog((30, "Classifying Image", camera_));
   if(!classifier_->classifyImage(color_table_)) return;
   detectBall();
+  detectGoal();
 }
+
+void ImageProcessor::detectGoal() {
+  int imageX, imageY;
+  if(!findGoal(imageX, imageY)) return; // function defined elsewhere that fills in imageX, imageY by reference
+  WorldObject* ball = &vblocks_.world_object->objects_[WO_UNKNOWN_GOAL];
+
+  ball->imageCenterX = imageX;
+  ball->imageCenterY = imageY;
+
+  Position p = cmatrix_.getWorldPosition(imageX, imageY);
+  ball->visionBearing = cmatrix_.bearing(p);
+  ball->visionElevation = cmatrix_.elevation(p);
+  ball->visionDistance = cmatrix_.groundDistance(p);
+
+  ball->seen = true;
+}
+
+bool ImageProcessor::findGoal(int& imageX, int& imageY) {
+  
+  unsigned char* image = getImg();
+  int height = getImageHeight();
+  int width = getImageWidth();
+  unsigned char* color_table = getColorTable();
+  
+  int xMin, xMax, maxRowY, maxRowCount;
+  xMin = xMax = maxRowY = maxRowCount = 0;
+  
+  for(int i = 0 ; i < height ; i++)
+  {
+    int rowStart = 0;
+    int rowEnd = 0;
+    int maxCount = 0;
+    int currentCount = 0;
+    int currentRowStart = 0;
+    int currentRowEnd = 0;
+    
+    for (int j = 0; j < width; j++) {
+      if(ColorTableMethods::xy2color(image,color_table,i,j,width) == c_BLUE) {
+
+        if (currentCount == 0) {
+          currentRowStart = j;
+        }
+
+        currentCount++;
+        currentRowEnd = j;
+
+        if (maxCount < currentCount) { 
+          maxCount = currentCount;
+          rowEnd = currentRowEnd;
+          rowStart = currentRowStart;  
+        }
+      } else {
+        currentCount = 0;
+      }
+    }
+    
+    if (maxCount > maxRowCount) {
+      xMin = rowStart;
+      xMax = rowEnd;
+      maxRowY = i;
+      maxRowCount = maxCount;
+    }
+  }
+
+  if ((maxRowCount == 0) || (xMax - xMin <= 40)) {
+    return false;
+  }
+  
+  imageY = (xMax + xMin) / 2;
+  imageX = maxRowY;
+  std::cout << "| Blue Blob Detected : " << xMin <<" " << xMax <<" "<< maxRowY <<" "<< maxRowCount << "|" << endl;
+  printf("imageX: %i, imageY: %i\n", imageX, imageY);
+  return true;
+}
+
 
 void ImageProcessor::detectBall() {
+  
+  int imageX, imageY;
+  if(!findBall(imageX, imageY)) return; // function defined elsewhere that fills in imageX, imageY by reference
+  WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
+
+  ball->imageCenterX = imageX;
+  ball->imageCenterY = imageY;
+
+  Position p = cmatrix_.getWorldPosition(imageX, imageY);
+  ball->visionBearing = cmatrix_.bearing(p);
+  ball->visionElevation = cmatrix_.elevation(p);
+  ball->visionDistance = cmatrix_.groundDistance(p);
+
+  ball->seen = true;
+
 }
 
-void ImageProcessor::findBall(int& imageX, int& imageY) {
-  imageX = imageY = 0;
+bool ImageProcessor::findBall(int& imageX, int& imageY) {
+  
+  unsigned char* image = getImg();
+  int height = getImageHeight();
+  int width = getImageWidth();
+  unsigned char* color_table = getColorTable();
+  
+  int xMin, xMax, maxRowY, maxRowCount;
+  xMin = xMax = maxRowY = maxRowCount = 0;
+  
+  for(int i = 0 ; i < height ; i++)
+  {
+    int rowStart = 0;
+    int rowEnd = 0;
+    int maxCount = 0;
+    int currentCount = 0;
+    int currentRowStart = 0;
+    int currentRowEnd = 0;
+    
+    for (int j = 0; j < width; j++) {
+      if(ColorTableMethods::xy2color(image,color_table,i,j,width) == c_ORANGE) {
+
+        if (currentCount == 0) {
+          currentRowStart = j;
+        }
+
+        currentCount++;
+        currentRowEnd = j;
+
+        if (maxCount < currentCount) { 
+          maxCount = currentCount;
+          rowEnd = currentRowEnd;
+          rowStart = currentRowStart;  
+        }
+      } else {
+        currentCount = 0;
+      }
+    }
+    
+    if (maxCount > maxRowCount) {
+      xMin = rowStart;
+      xMax = rowEnd;
+      maxRowY = i;
+      maxRowCount = maxCount;
+    }
+  }
+
+  if ((maxRowCount == 0) || (xMax - xMin <= 7)) {
+    return false;
+  }
+  
+  imageY = (xMax + xMin) / 2;
+  imageX = maxRowY;
+  std::cout << "| Orange Blob Detected : " << xMin <<" " << xMax <<" "<< maxRowY <<" "<< maxRowCount << "|" << endl;
+  printf("imageX: %i, imageY: %i\n", imageX, imageY);
+  return true;
 }
 
 int ImageProcessor::getTeamColor() {

@@ -1,4 +1,4 @@
-import memory, pose, commands, cfgstiff, core
+import memory, pose, commands, cfgstiff, head
 from task import Task
 from state_machine import *
 
@@ -10,28 +10,25 @@ class Ready(Task):
       self.finish()
 
 class Playing(StateMachine):
-  class Comment(Node):
-    def run(self):
-      #memory.speech.say("this codebase is broken")
-      if self.getTime() > 5.0:
-        memory.speech.say("no ripping the code")
-        self.finish()
 
+  class StandStraight(Node):
+    def run(self):
+      commands.standStraight()
+      if self.getTime() > 5.0:
+        memory.speech.say("Look! I'm standing straight!")
+        self.finish()
+  
   class Stand(Node):
     def run(self):
       commands.stand()
-      print "head %f " % core.sensor_values[core.headMiddle]
       if self.getTime() > 5.0:
-        print dir(memory)
-      #  print dir(core)
-        memory.speech.say("playing stand complete")
+        memory.speech.say("I'm just standing normally.")
         self.finish()
 
-  class Walk(Node):
+  class TurnHead(Node):
     def run(self):
-      print "My head yaw value is %f!" % core.joint_values[core.HeadYaw]
-      print "Sensor %f " % core.sensor_values[core.centerButton] 
-      commands.setWalkVelocity(0.5,0,0)
+      commands.setHeadPan(1.57)
+      self.finish()
 
   class Off(Node):
     def run(self):
@@ -41,9 +38,9 @@ class Playing(StateMachine):
         self.finish()
 
   def setup(self):
-    comment = self.Comment()
+    stand_without_finish = self.StandStraight()
     stand = self.Stand()
-    walk = self.Walk()
     sit = pose.Sit()
     off = self.Off()
-    self.trans(stand, C, comment, C, walk, T(5.0), sit, C, off)
+    self.trans(self.StandStraight(), C, pose.Sit(), C, self.TurnHead(), C, pose.Sit(), C, self.Stand(), C, pose.Sit(), C, off)
+
