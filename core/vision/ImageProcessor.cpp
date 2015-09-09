@@ -1,5 +1,6 @@
 #include <vision/ImageProcessor.h>
 #include <vision/BeaconDetector.h>
+#include <vision/structures/TreeNode.h>
 #include <iostream>
 
 ImageProcessor::ImageProcessor(VisionBlocks& vblocks, const ImageParams& iparams, Camera::Type camera) :
@@ -111,6 +112,7 @@ void ImageProcessor::processFrame(){
   if(!classifier_->classifyImage(color_table_)) return;
   detectBall();
   beacon_detector_->findBeacons();
+  getBallCandidates();
 }
 
 void ImageProcessor::detectBall() {
@@ -135,6 +137,62 @@ float ImageProcessor::getHeadChange() const {
 }
 
 std::vector<BallCandidate*> ImageProcessor::getBallCandidates() {
+  
+  unsigned char *image = getImg();
+  int height = getImageHeight();
+  int width = getImageWidth();
+
+  std::map<int,vector<struct TreeNode *>> rowNodeMap;
+  struct DisjointSet disjointSet;
+  int xMin, xMax, maxRowY, maxRowCount;
+  xMin = xMax = maxRowY = maxRowCount = 0;
+  
+  for(int i = 0 ; i < height ; i++)
+  {
+    int rowStart = 0;
+    int rowEnd = 0;
+      std::vector<struct TreeNode *> treeNodes ;
+    
+    for (int j = 0; j < width; j++) {
+
+      if(ColorTableMethods::xy2color(image,color_table_,i,j,width) != c_ORANGE) {
+        if(rowStart != rowEnd)
+        {
+          if(rowEnd - rowStart >=5){
+            treeNodes.push_back(disjointSet.makeset(i,rowStart,rowEnd, c_ORANGE));
+            
+          }
+        }
+        rowStart=j;
+        
+      } 
+      rowEnd=j;
+    }
+   
+   rowNodeMap[i] = treeNodes;
+  }
+  
+  for(int i=0; i<height-1; i++){
+   
+    for(std::vector<struct TreeNode *>::iterator j = rowNodeMap[i].begin(); j!= rowNodeMap[i].end(); ++j){
+      
+      for(std::vector<struct TreeNode *>::iterator k = rowNodeMap[i+1].begin(); k!= rowNodeMap[i+1].end(); ++k){
+        
+        if(!(((*k)->line->posStart > (*j)->line->posEnd)||((*k)->line->posEnd < (*j)->line->posStart))){
+          if((*k)->hasSelfAsParent()){
+            disjointSet.unionNodes(*j,*k);
+            disjointSet.find(*k);
+          } else {
+            disjointSet.mergeNodes(*j,*k);
+          }
+        }
+      }
+    }
+  }
+  for(std::set<struct TreeNode *>::iterator j = disjointSet.rootSet.begin(); j!= disjointSet.rootSet.end(); ++j) {
+    std::cout<<(*j)->topleft->x <<" " <<(*j)->topleft->y<<" " << (*j)->bottomright->x<<" " << (*j)->bottomright->y<<" "<<endl;
+  } 
+  std::cout<<"------"<<endl;
   return std::vector<BallCandidate*>();
 }
 
