@@ -11,9 +11,11 @@ TreeNode::TreeNode(int row, int start, int end, int colour){
 }
 
 bool TreeNode::hasSelfAsParent(){
-  
   return (parent == this); 
+}
 
+bool TreeNode::hasOverlap(struct TreeNode* node) {
+  return (!(node->line->posStart > line->posEnd || node->line->posEnd < line->posStart));
 }
 
 struct TreeNode* TreeNode::findGlobalParent(){
@@ -65,11 +67,14 @@ void DisjointSet::find(struct TreeNode * node){
 void TreeNode::actAsParent(struct TreeNode *node){
 
   node->parent = this;
-  if(node->line->posStart < topleft->x)
-      topleft->x = node->line->posStart;
-  if(node->line->posEnd > bottomright->x)
-      bottomright->x = node->line->posEnd;
-  bottomright->y = node->line->rowNum;  
+  if(node->topleft->x < topleft->x)
+      topleft->x = node->topleft->x;
+  if(node->bottomright->x > bottomright->x)
+      bottomright->x = node->bottomright->x;
+  if(node->topleft->y < topleft->y)
+      topleft->y = node->topleft->y;
+  if(node->bottomright->y > bottomright->y)
+      bottomright->y = node->bottomright->y;
 }
 
 

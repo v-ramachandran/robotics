@@ -15,6 +15,7 @@ struct TreeNode {
   struct TreeNode *parent;
   TreeNode(int row, int start, int end, int color);
   bool hasSelfAsParent();
+  bool hasOverlap(struct TreeNode *node);
   struct TreeNode* findGlobalParent();
   void actAsParent(struct TreeNode *node);
 };

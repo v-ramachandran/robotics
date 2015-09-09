@@ -138,61 +138,50 @@ float ImageProcessor::getHeadChange() const {
 
 std::vector<BallCandidate*> ImageProcessor::getBallCandidates() {
   
-  unsigned char *image = getImg();
+  unsigned char* image = getImg();
   int height = getImageHeight();
   int width = getImageWidth();
-
-  std::map<int,vector<struct TreeNode *>> rowNodeMap;
   struct DisjointSet disjointSet;
-  int xMin, xMax, maxRowY, maxRowCount;
-  xMin = xMax = maxRowY = maxRowCount = 0;
-  
-  for(int i = 0 ; i < height ; i++)
-  {
+  std::map<int,vector<struct TreeNode *>> rowNodeMap;
+
+  for(int y=0; y<height; ++y){
     int rowStart = 0;
     int rowEnd = 0;
-      std::vector<struct TreeNode *> treeNodes ;
-    
-    for (int j = 0; j < width; j++) {
-
-      if(ColorTableMethods::xy2color(image,color_table_,i,j,width) != c_ORANGE) {
-        if(rowStart != rowEnd)
-        {
-          if(rowEnd - rowStart >=5){
-            treeNodes.push_back(disjointSet.makeset(i,rowStart,rowEnd, c_ORANGE));
-            
-          }
+    std::vector<struct TreeNode *> treeNodes ;
+    for(int x=0; x<width; ++x){
+      if(ColorTableMethods::xy2color(image, color_table_, x, y, width)!=c_ORANGE) {
+        if(rowStart != rowEnd){
+          struct TreeNode * treeNode = disjointSet.makeset(y, rowStart, rowEnd, c_ORANGE);
+          treeNodes.push_back(treeNode);
+          //std::cout << treeNode->bottomright->x - treeNode->topleft->x<<" "<<treeNode->topleft->y<<" "<<treeNode->bottomright->y<<endl;
         }
-        rowStart=j;
-        
-      } 
-      rowEnd=j;
+        rowStart = x;
+      }
+      rowEnd = x;
     }
-   
-   rowNodeMap[i] = treeNodes;
+    rowNodeMap[y] = treeNodes;
   }
-  
-  for(int i=0; i<height-1; i++){
-   
-    for(std::vector<struct TreeNode *>::iterator j = rowNodeMap[i].begin(); j!= rowNodeMap[i].end(); ++j){
-      
-      for(std::vector<struct TreeNode *>::iterator k = rowNodeMap[i+1].begin(); k!= rowNodeMap[i+1].end(); ++k){
-        
-        if(!(((*k)->line->posStart > (*j)->line->posEnd)||((*k)->line->posEnd < (*j)->line->posStart))){
-          if((*k)->hasSelfAsParent()){
-            disjointSet.unionNodes(*j,*k);
-            disjointSet.find(*k);
+
+  for(int y=0; y<height-1; ++y) {
+    for(std::vector<struct TreeNode *>::iterator currNodeItem = rowNodeMap[y].begin(); currNodeItem!= rowNodeMap[y].end(); ++currNodeItem) { 
+      for(std::vector<struct TreeNode *>::iterator nextNodeItem = rowNodeMap[y].begin(); nextNodeItem!= rowNodeMap[y].end(); ++nextNodeItem) {
+        if ((*currNodeItem)->hasOverlap(*nextNodeItem)) {
+          if ((*nextNodeItem)->hasSelfAsParent()) {
+            disjointSet.unionNodes(*currNodeItem, *nextNodeItem);
+            disjointSet.find(*nextNodeItem);
           } else {
-            disjointSet.mergeNodes(*j,*k);
+            disjointSet.mergeNodes(*currNodeItem, *nextNodeItem);
           }
         }
       }
     }
   }
-  for(std::set<struct TreeNode *>::iterator j = disjointSet.rootSet.begin(); j!= disjointSet.rootSet.end(); ++j) {
-    std::cout<<(*j)->topleft->x <<" " <<(*j)->topleft->y<<" " << (*j)->bottomright->x<<" " << (*j)->bottomright->y<<" "<<endl;
+  
+  std::cout<<disjointSet.rootSet.empty()<<endl;  
+  
+  for(std::set<struct TreeNode *>::iterator treeNode = disjointSet.rootSet.begin(); treeNode!= disjointSet.rootSet.end(); ++treeNode) {
+    std::cout<<(*treeNode)->topleft->x <<" " <<(*treeNode)->topleft->y<<" " << (*treeNode)->bottomright->x<<" " << (*treeNode)->bottomright->y<<" "<<endl;
   } 
-  std::cout<<"------"<<endl;
   return std::vector<BallCandidate*>();
 }
 
