@@ -12,6 +12,7 @@
 #include <common/RobotCalibration.h>
 #include <vision/structures/BallCandidate.h>
 #include <math/Pose3D.h>
+#include <cmath>
 
 class BeaconDetector;
 
@@ -37,6 +38,7 @@ class ImageProcessor {
     void updateTransform();
     std::vector<BallCandidate*> getBallCandidates();
     BallCandidate* getBestBallCandidate();
+    vector<struct TreeNode *> getBallNodes();
     bool isImageLoaded();
     void detectBall();
     void findBall(int& imageX, int& imageY);

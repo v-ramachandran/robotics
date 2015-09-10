@@ -30,8 +30,10 @@ struct TreeNode* TreeNode::findGlobalParent(){
 void DisjointSet::mergeNodes(struct TreeNode * node1, struct TreeNode * node2){
   struct TreeNode *parent1 = node1->findGlobalParent();
   struct TreeNode *parent2 = node2->findGlobalParent();
-  parent2->actAsParent(parent1);
-  rootSet.erase(parent1);
+  if (parent1 != parent2) {
+    parent2->actAsParent(parent1);
+    rootSet.erase(parent1);
+  }
 }
 
 struct TreeNode * DisjointSet::makeset(int row, int start, int end, int color){
@@ -59,13 +61,12 @@ void DisjointSet::find(struct TreeNode * node){
   while(next->parent != next){
     struct TreeNode *temp2 = next->parent;
     temp->actAsParent(next);
-    rootSet.erase(next);
     next = temp2;
   }
 }
 
 void TreeNode::actAsParent(struct TreeNode *node){
-
+  
   node->parent = this;
   if(node->topleft->x < topleft->x)
       topleft->x = node->topleft->x;
