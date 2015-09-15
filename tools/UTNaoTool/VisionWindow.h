@@ -118,6 +118,7 @@ public:
 
   void update(Memory* memory);
   void drawBallCands(ImageWidget* image);
+  void drawGoalCands(ImageWidget* image);
   void drawBall(ImageWidget* image);
   void drawWorldObject(ImageWidget* image, QColor color, int worldObjectID);
   void drawHorizonLine(ImageWidget* image);
