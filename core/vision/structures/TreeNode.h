@@ -42,6 +42,7 @@ struct DisjointSet{
   void unionNodes( struct TreeNode * node1, struct TreeNode * node2);
   void find(struct TreeNode * node);
   void mergeNodes(struct TreeNode * node1, struct TreeNode * node2);
+  void deleteTinyBlobs();
 };
  
 #endif

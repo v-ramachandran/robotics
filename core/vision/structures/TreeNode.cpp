@@ -135,3 +135,14 @@ void TreeNode::actAsParent(struct TreeNode *node){
   }
 }
 
+void DisjointSet::deleteTinyBlobs(){
+  int minValue = 3;
+  for(std::set<struct TreeNode *>::iterator node = rootSet.begin(); node != rootSet.end(); ++node){
+    int height = (*node)->bottomright->y - (*node)->topleft->y;
+    int width = (*node)->bottomright->x - (*node)->topleft->x;
+    if (height <= minValue || width <= minValue){
+       rootSet.erase(*node);
+    }
+  }
+}
+

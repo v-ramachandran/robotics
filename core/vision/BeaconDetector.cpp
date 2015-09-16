@@ -8,9 +8,28 @@ using namespace Eigen;
 BeaconDetector::BeaconDetector(DETECTOR_DECLARE_ARGS) : DETECTOR_INITIALIZE {
 }
 
+bool BeaconDetector::checkColorUpperPixels(ImageProcessor *processor, int leftX, int rightX, int height){
+  int countBlue = 0;
+  int countPink = 0;
+  int width = rightX - leftX + 1;
+  unsigned char * image = processor->getImg();
+  unsigned char * color_table_ = processor->getColorTable();
+  for(int y = height - 5; y<height; ++y){
+    for(int x = leftX; x <= rightX; ++x){
+      Color currentColor = ColorTableMethods::xy2color(image, color_table_, x, y, processor->getImageWidth());
+      if(currentColor == c_BLUE) 
+        countBlue++;
+      else if (currentColor == c_PINK)
+        countPink++;
+    }
+  }
+  float ratioBlue = (float)countBlue/(float)(width*5);
+  float ratioPink = (float)countPink/(float)(width*5);
+  return (ratioBlue > 0.5 || ratioPink > 0.5); 
+  return false;
+}
 
-
-vector<int> BeaconDetector::findColoredBeacon(Color color1, Color color2, std::map<Color, struct DisjointSet> colorDisjointSets){
+vector<int> BeaconDetector::findColoredBeacon(Color color1, Color color2, std::map<Color, struct DisjointSet> colorDisjointSets, ImageProcessor *processor){
 
   float errorX, errorY;
   errorX = errorY = 8;
@@ -22,7 +41,7 @@ vector<int> BeaconDetector::findColoredBeacon(Color color1, Color color2, std::m
  // }
   
   for(std::set<TreeNode *>::iterator colorDisjointSet1 = colorDisjointSets[color1].rootSet.begin(); colorDisjointSet1 != colorDisjointSets[color1].rootSet.end(); ++colorDisjointSet1){
-    if(!((*colorDisjointSet1)->hasMinimumWidth(minValue) && (*colorDisjointSet1)->hasMinimumHeight(minValue))){
+    if((!((*colorDisjointSet1)->hasMinimumWidth(minValue) && (*colorDisjointSet1)->hasMinimumHeight(minValue))) || checkColorUpperPixels(processor,(*colorDisjointSet1)->topleft->x,(*colorDisjointSet1)->bottomright->x, (*colorDisjointSet1)->topleft->y)){
       continue;
     }
     // std::cout<<color1<<" "<< (*colorDisjointSet1)->topleft->x<<" "<<(*colorDisjointSet1)->topleft->y<<" "<<(*colorDisjointSet1)->bottomright->x<<" "<<(*colorDisjointSet1)->bottomright->y<<endl;
@@ -70,14 +89,14 @@ vector<int> BeaconDetector::findColoredBeacon(Color color1, Color color2, std::m
 
   return box;
 }
-void BeaconDetector::findBeacons(std::map<Color, struct DisjointSet> colorDisjointSets) {
+void BeaconDetector::findBeacons(std::map<Color, struct DisjointSet> colorDisjointSets, ImageProcessor * processor) {
   if(camera_ == Camera::BOTTOM) return;
-  vector<int> boxYellowBlue =  findColoredBeacon(c_YELLOW, c_BLUE, colorDisjointSets);
-  vector<int> boxBlueYellow =  findColoredBeacon(c_BLUE, c_YELLOW, colorDisjointSets);
-  vector<int> boxYellowPink =  findColoredBeacon(c_YELLOW, c_PINK, colorDisjointSets);
-  vector<int> boxPinkYellow =  findColoredBeacon(c_PINK, c_YELLOW, colorDisjointSets);
-  vector<int> boxBluePink = findColoredBeacon(c_BLUE, c_PINK, colorDisjointSets);
-  vector<int> boxPinkBlue = findColoredBeacon(c_PINK, c_BLUE, colorDisjointSets);
+  vector<int> boxYellowBlue =  findColoredBeacon(c_YELLOW, c_BLUE, colorDisjointSets, processor);
+  vector<int> boxBlueYellow =  findColoredBeacon(c_BLUE, c_YELLOW, colorDisjointSets, processor);
+  vector<int> boxYellowPink =  findColoredBeacon(c_YELLOW, c_PINK, colorDisjointSets, processor);
+  vector<int> boxPinkYellow =  findColoredBeacon(c_PINK, c_YELLOW, colorDisjointSets, processor);
+  vector<int> boxBluePink = findColoredBeacon(c_BLUE, c_PINK, colorDisjointSets, processor);
+  vector<int> boxPinkBlue = findColoredBeacon(c_PINK, c_BLUE, colorDisjointSets, processor);
 
   map<WorldObjectType,int> heights = {
     { WO_BEACON_YELLOW_BLUE, 300 },
@@ -109,7 +128,7 @@ void BeaconDetector::findBeacons(std::map<Color, struct DisjointSet> colorDisjoi
     object.visionBearing = cmatrix_.bearing(position);
     object.seen = true;
     object.fromTopCamera = camera_ == Camera::TOP;
-    std::cout<<getName(beacon.first)<<" "<<object.imageCenterX<<" "<< object.imageCenterY<<" "<< object.visionDistance<<endl;
+  //  std::cout<<getName(beacon.first)<<" "<<object.imageCenterX<<" "<< object.imageCenterY<<" "<< object.visionDistance<<endl;
     visionLog(30, "saw %s at (%i,%i) with calculated distance %2.4f", getName(beacon.first), object.imageCenterX, object.imageCenterY, object.visionDistance);
   }
 }

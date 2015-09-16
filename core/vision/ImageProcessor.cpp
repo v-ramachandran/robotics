@@ -113,7 +113,7 @@ void ImageProcessor::processFrame(){
   getBlobNodes();
   detectBall();
   getBestGoalCandidate();
-  beacon_detector_->findBeacons(colorDisjointSets);
+  beacon_detector_->findBeacons(colorDisjointSets, this);
 }
 
 void ImageProcessor::detectBall() {
@@ -157,8 +157,6 @@ float ImageProcessor::getHeadChange() const {
 
 void ImageProcessor::getBlobNodes() {
   
-
-
   unsigned char* image = getImg();
   int height = getImageHeight();
   int width = getImageWidth();
@@ -176,8 +174,10 @@ void ImageProcessor::getBlobNodes() {
       Color detectedColor = ColorTableMethods::xy2color(image, color_table_, x, y, width);
       if (currentColor != detectedColor) {
         // save old run
-        struct TreeNode* treeNode = colorDisjointSets[currentColor].makeset(y, rowStart, rowEnd, currentColor);
-        colorRowNodeMap[currentColor][y].push_back(treeNode);
+        if (!(currentColor == c_FIELD_GREEN || currentColor == c_UNDEFINED || currentColor == c_ROBOT_WHITE)) {
+          struct TreeNode* treeNode = colorDisjointSets[currentColor].makeset(y, rowStart, rowEnd, currentColor);
+          colorRowNodeMap[currentColor][y].push_back(treeNode);
+        }
         // start new run
         rowStart = x;
       } 
@@ -203,16 +203,23 @@ void ImageProcessor::getBlobNodes() {
         }
       }
     }
+  
   }
-
+   
    for(std::map<Color, struct DisjointSet>::iterator disjointSet = colorDisjointSets.begin(); disjointSet != colorDisjointSets.end(); ++disjointSet){
      Color color = disjointSet->first;
      struct DisjointSet colorDisjointSet = disjointSet->second;
      for(int y=0; y<height-1; ++y) {
        for(std::vector<struct TreeNode *>::iterator currNodeItem = colorRowNodeMap[color][y].begin(); currNodeItem!= colorRowNodeMap[color][y].end(); ++currNodeItem) { 
+         int height = (*currNodeItem)->bottomright->y - (*currNodeItem)->topleft->y;
+         int width = (*currNodeItem)->bottomright->x - (*currNodeItem)->topleft->x;
          if(colorDisjointSet.rootSet.find(*currNodeItem) == colorDisjointSet.rootSet.end()){
+           
            delete (*currNodeItem); 
-         }   
+         } else if (height <= 3 || width <= 3) {
+           colorDisjointSet.rootSet.erase(*currNodeItem);
+           //delete (*currNodeItem);
+         }
        }
      }
    }
@@ -282,7 +289,7 @@ BallCandidate* ImageProcessor::getBestBallCandidate() {
     Position q = cmatrix_.getWorldPosition((*ball)->centerX, (*ball)->centerY, 32.5);
     float h = cmatrix_.groundDistance(q);
     
-    std::cout<<"distance ! "<<h<<endl<<" "<<cmatrix_.getCameraWidthByDistance(h, 65)<<" "<<cmatrix_.getCameraHeightByDistance(h, 65)<<" "<<(*ball)->width<<" "<<(*ball)->height<<endl;
+//    std::cout<<"distance ! "<<h<<endl<<" "<<cmatrix_.getCameraWidthByDistance(h, 65)<<" "<<cmatrix_.getCameraHeightByDistance(h, 65)<<" "<<(*ball)->width<<" "<<(*ball)->height<<endl;
     float g = cmatrix_.groundDistance(p);
     if (abs(((*ball)->width / 2) - (cmatrix_.getCameraWidthByDistance(g, 65)/2)) < 2 && abs(((*ball)->height / 2) - (cmatrix_.getCameraHeightByDistance(g, 65)/2)) < 2) {
       return *ball;
@@ -309,7 +316,7 @@ std::vector<TreeNode*> ImageProcessor::getGoalCandidates() {
     float area = width * height;
     float numberPixels = (*treeNode)->numberOfPixels;
 
-    if((width>=5) && (height>=5) && ((numberPixels/area) > .45) && (numberPixels > 950)){
+    if((width>=5) && (height>=5) && ((numberPixels/area) > .5) && (numberPixels > 1000)){
       goalNodes.push_back(*treeNode);
     }  
   }
