@@ -24,6 +24,10 @@ bool TreeNode::hasExpectedHeight(int expectedHeight, float error){
 }
 
 bool TreeNode::isStackedAbove(struct TreeNode *node, float errorX, float errorY){
+  
+  if ((bottomright->x <= node->topleft->x) || (node->bottomright->x <= topleft->x)) {
+    return false;
+  }
   return (!((abs(topleft->x - node->topleft->x) > errorX) || (abs(bottomright->x - node->bottomright->x) > errorX) ||
     (abs(bottomright->y - node->topleft->y) > errorY)));
 }

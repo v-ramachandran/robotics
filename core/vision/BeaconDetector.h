@@ -18,6 +18,7 @@ class BeaconDetector : public ObjectDetector {
   vector<int> findColoredBeacon(Color color1, Color color2, std::map<Color, struct DisjointSet> colorDisjointSets, ImageProcessor * processor);
   void findBeacons(std::map<Color, struct DisjointSet> colorDisjointSets, ImageProcessor * processor);
   bool checkColorUpperPixels(ImageProcessor * processor, int leftX, int rightX, int height);
+  bool checkWhiteLowerPixels(ImageProcessor * processor, int leftX, int rightX, int depth);
  private:
   TextLogger* textlogger;
 };

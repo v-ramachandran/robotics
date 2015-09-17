@@ -17,11 +17,9 @@ class Playing(StateMachine):
       ball = world_objects.getObjPtr(core.WO_BALL)
       if ball.seen:
         memory.speech.say("ball detected")
-        commands.setHeadPan(ball.visionBearing, target_time = 0.05)
+        commands.setHeadPan(ball.visionBearing, target_time = 0.25)
         print ball.visionElevation
         print ball.elevation
-      else:
-        memory.speech.say("Where ball")
       if self.getTime() > 30.0:
         memory.speech.say("playing stand complete")
         self.finish()

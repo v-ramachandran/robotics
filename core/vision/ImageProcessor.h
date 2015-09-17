@@ -42,6 +42,7 @@ class ImageProcessor {
     bool isAtleastMinimumSize(struct TreeNode * treeNode);
     bool isCircularArea(struct TreeNode * treeNode);
     bool hasMinimumArea(struct TreeNode * treeNode);
+    bool hasBallAspectRatio(struct TreeNode * treeNode);
     bool goalAspectRatioTest(struct TreeNode * node);
     std::vector<BallCandidate*> getBallCandidates();
     std::vector<TreeNode*> getGoalCandidates();

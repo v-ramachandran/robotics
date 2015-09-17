@@ -8,85 +8,71 @@ using namespace Eigen;
 BeaconDetector::BeaconDetector(DETECTOR_DECLARE_ARGS) : DETECTOR_INITIALIZE {
 }
 
-bool BeaconDetector::checkColorUpperPixels(ImageProcessor *processor, int leftX, int rightX, int height){
-  int countBlue = 0;
-  int countPink = 0;
+bool BeaconDetector::checkWhiteLowerPixels(ImageProcessor *processor, int leftX, int rightX, int depth) {
+  int countWhite = 0;
   int width = rightX - leftX + 1;
   unsigned char * image = processor->getImg();
   unsigned char * color_table_ = processor->getColorTable();
-  for(int y = height - 5; y<height; ++y){
+  for(int y = depth+1; y <= depth+8; ++y){
+    for(int x = leftX; x <= rightX; ++x){
+      Color currentColor = ColorTableMethods::xy2color(image, color_table_, x, y, processor->getImageWidth());
+      if(currentColor == c_WHITE) 
+        countWhite++;
+    }
+  }
+  float ratioWhite = (float)countWhite/(float)(width*5);
+  return (ratioWhite > 0.5);   
+}
+
+bool BeaconDetector::checkColorUpperPixels(ImageProcessor *processor, int leftX, int rightX, int height) {
+  int countBlue = 0;
+  int countPink = 0;
+  int countYellow = 0;
+  int width = rightX - leftX + 1;
+  unsigned char * image = processor->getImg();
+  unsigned char * color_table_ = processor->getColorTable();
+  for(int y = height - 8; y<height; ++y){
     for(int x = leftX; x <= rightX; ++x){
       Color currentColor = ColorTableMethods::xy2color(image, color_table_, x, y, processor->getImageWidth());
       if(currentColor == c_BLUE) 
         countBlue++;
       else if (currentColor == c_PINK)
         countPink++;
+      else if (currentColor == c_YELLOW)
+        countYellow++;
     }
   }
   float ratioBlue = (float)countBlue/(float)(width*5);
   float ratioPink = (float)countPink/(float)(width*5);
-  return (ratioBlue > 0.5 || ratioPink > 0.5); 
-  return false;
+  float ratioYellow = (float)countYellow/(float)(width*5);
+  return (ratioBlue > 0.5 || ratioPink > 0.5 || ratioYellow > 0.5); 
 }
 
-vector<int> BeaconDetector::findColoredBeacon(Color color1, Color color2, std::map<Color, struct DisjointSet> colorDisjointSets, ImageProcessor *processor){
+vector<int> BeaconDetector::findColoredBeacon(Color color1, Color color2, std::map<Color, struct DisjointSet> colorDisjointSets, ImageProcessor *processor) {
 
   float errorX, errorY;
-  errorX = errorY = 8;
-  int minValue = 7;
+  errorX = 15;
+  errorY = 6;
+  int minValue = 8;
   vector<int> box;
- // for(std::set<TreeNode *>::iterator colorDisjointSet1 = colorDisjointSets[color1].rootSet.begin(); colorDisjointSet1 != colorDisjointSets[color1].rootSet.end(); ++colorDisjointSet1){
-  //  std::cout<<color1<<" "<< (*colorDisjointSet1)->topleft->x<<" "<<(*colorDisjointSet1)->topleft->y<<" "<<(*colorDisjointSet1)->bottomright->x<<" "<<(*colorDisjointSet1)->bottomright->y<<endl;
-
- // }
   
   for(std::set<TreeNode *>::iterator colorDisjointSet1 = colorDisjointSets[color1].rootSet.begin(); colorDisjointSet1 != colorDisjointSets[color1].rootSet.end(); ++colorDisjointSet1){
     if((!((*colorDisjointSet1)->hasMinimumWidth(minValue) && (*colorDisjointSet1)->hasMinimumHeight(minValue))) || checkColorUpperPixels(processor,(*colorDisjointSet1)->topleft->x,(*colorDisjointSet1)->bottomright->x, (*colorDisjointSet1)->topleft->y)){
       continue;
     }
-    // std::cout<<color1<<" "<< (*colorDisjointSet1)->topleft->x<<" "<<(*colorDisjointSet1)->topleft->y<<" "<<(*colorDisjointSet1)->bottomright->x<<" "<<(*colorDisjointSet1)->bottomright->y<<endl;
+    
     for(std::set<TreeNode *>::iterator colorDisjointSet2 = colorDisjointSets[color2].rootSet.begin(); colorDisjointSet2 != colorDisjointSets[color2].rootSet.end(); ++colorDisjointSet2){
-//      std::cout<<color2<<" "<< (*colorDisjointSet2)->topleft->x<<" "<<(*colorDisjointSet2)->topleft->y<<" "<<(*colorDisjointSet2)->bottomright->x<<" "<<(*colorDisjointSet2)->bottomright->y<<endl;
-      if((*colorDisjointSet1)->hasSimilarWidth(*colorDisjointSet2,errorX) && (*colorDisjointSet1)->hasSimilarHeight(*colorDisjointSet2,errorY) && (*colorDisjointSet1)->isStackedAbove(*colorDisjointSet2,errorX,errorY) ){// &&(*colorDisjointSet1)->hasSimilarDensity(*colorDisjointSet2)){
-        for(std::set<TreeNode *>::iterator whiteDisjointSet = colorDisjointSets[c_WHITE].rootSet.begin(); whiteDisjointSet != colorDisjointSets[c_WHITE].rootSet.end(); ++whiteDisjointSet ){
-          if ((color1 == c_YELLOW && color2 == c_BLUE) || (color1 == c_BLUE && color2 == c_YELLOW)) {
-            int heightColor1 = (*colorDisjointSet1)->bottomright->y - (*colorDisjointSet1)->topleft->y;
-            int heightColor2 = (*colorDisjointSet2)->bottomright->y - (*colorDisjointSet2)->topleft->y;
-            if((*whiteDisjointSet)->hasMinimumWidth(minValue) && (*whiteDisjointSet)->hasMinimumHeight(minValue)){
-//            std::cout<<"white"<<" "<< (*whiteDisjointSet)->topleft->x<<" "<<(*whiteDisjointSet)->topleft->y<<" "<<(*whiteDisjointSet)->bottomright->x<<" "<<(*whiteDisjointSet)->bottomright->y<<endl;
-//            std::cout<<"cand"<<" "<< (*whiteDisjointSet)->hasSimilarWidth(*colorDisjointSet2,errorX) <<" "<<(*whiteDisjointSet)->hasExpectedHeight(heightColor1 + heightColor2,errorY)<<" "<<(*colorDisjointSet2)->isStackedAbove(*whiteDisjointSet,errorX,errorY)<<endl;
-
-            }
-
-            if(((*whiteDisjointSet)->hasSimilarWidth(*colorDisjointSet2,errorX) && (*whiteDisjointSet)->hasExpectedHeight(heightColor1 + heightColor2,errorY*2) && (*colorDisjointSet2)->isStackedAbove(*whiteDisjointSet,errorX,errorY)) || (*colorDisjointSet2)->isContainedWithin(*whiteDisjointSet, errorX)){
-               box.push_back(std::min((*colorDisjointSet1)->topleft->x, (*colorDisjointSet2)->topleft->x));
-               box.push_back((*colorDisjointSet1)->topleft->y);
-               box.push_back(std::max((*colorDisjointSet1)->bottomright->x, (*colorDisjointSet2)->bottomright->x));
-               box.push_back((*colorDisjointSet2)->bottomright->y);
-               int heightWhite = (*colorDisjointSet2)->isStackedAbove(*whiteDisjointSet,errorX,errorY) ? ((*whiteDisjointSet)->bottomright->y - (*whiteDisjointSet)->topleft->y): (heightColor1 + heightColor2);
-               float scale = 2;          
-              box.push_back(scale*(heightColor1 + heightColor2 + heightWhite));
-              return box;
-            }
-          } else {
-            if((*colorDisjointSet2)->hasSimilarWidth(*whiteDisjointSet,errorX) && (*colorDisjointSet2)->hasSimilarHeight(*whiteDisjointSet,errorY) && (*colorDisjointSet2)->isStackedAbove(*whiteDisjointSet,errorX,errorY)){
-               box.push_back(std::min((*colorDisjointSet1)->topleft->x, (*colorDisjointSet2)->topleft->x));
-               box.push_back((*colorDisjointSet1)->topleft->y);
-               box.push_back(std::max((*colorDisjointSet1)->bottomright->x, (*colorDisjointSet2)->bottomright->x));
-               box.push_back((*colorDisjointSet2)->bottomright->y);
-               int heightColor1 = (*colorDisjointSet1)->bottomright->y - (*colorDisjointSet1)->topleft->y;
-               int heightColor2 = (*colorDisjointSet2)->bottomright->y - (*colorDisjointSet2)->topleft->y;
-               int heightWhite = (heightColor1 + heightColor2)/2;
-               float scale = 2.45;          
-              box.push_back(scale*(heightColor1 + heightColor2 + heightWhite));
-              return box;
-            }
-          }
-        }
+  //    std::cout<<(*colorDisjointSet2)->topleft->x<<" "<<(*colorDisjointSet2)->topleft->y<<" "<<(*colorDisjointSet2)->bottomright->x<<" "<<(*colorDisjointSet2)->bottomright->y<<endl;
+  //    std::cout<<"o "<<checkWhiteLowerPixels(processor, (*colorDisjointSet2)->topleft->x, (*colorDisjointSet2)->bottomright->x, (*colorDisjointSet2)->bottomright->y)<<endl;   
+      if((*colorDisjointSet1)->hasSimilarWidth(*colorDisjointSet2,errorX) && (*colorDisjointSet1)->hasSimilarHeight(*colorDisjointSet2,errorY) && (*colorDisjointSet1)->isStackedAbove    (*colorDisjointSet2,errorX,errorY) && checkWhiteLowerPixels(processor, (*colorDisjointSet2)->topleft->x, (*colorDisjointSet2)->bottomright->x, (*colorDisjointSet2)->bottomright->y)) {
+         box.push_back(std::min((*colorDisjointSet1)->topleft->x, (*colorDisjointSet2)->topleft->x));
+         box.push_back((*colorDisjointSet1)->topleft->y);
+         box.push_back(std::max((*colorDisjointSet1)->bottomright->x, (*colorDisjointSet2)->bottomright->x));
+         box.push_back((*colorDisjointSet2)->bottomright->y);
+         return box;
       }
     }
   }
-
   return box;
 }
 void BeaconDetector::findBeacons(std::map<Color, struct DisjointSet> colorDisjointSets, ImageProcessor * processor) {
@@ -128,7 +114,7 @@ void BeaconDetector::findBeacons(std::map<Color, struct DisjointSet> colorDisjoi
     object.visionBearing = cmatrix_.bearing(position);
     object.seen = true;
     object.fromTopCamera = camera_ == Camera::TOP;
-  //  std::cout<<getName(beacon.first)<<" "<<object.imageCenterX<<" "<< object.imageCenterY<<" "<< object.visionDistance<<endl;
+    std::cout<<"distance! "<<getName(beacon.first)<<" "<<object.imageCenterX<<" "<< object.imageCenterY<<" "<< object.visionDistance<<endl;
     visionLog(30, "saw %s at (%i,%i) with calculated distance %2.4f", getName(beacon.first), object.imageCenterX, object.imageCenterY, object.visionDistance);
   }
 }
