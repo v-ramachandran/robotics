@@ -86,6 +86,18 @@ class Playing(StateMachine):
         memory.kick_request.setFwdKick()
         commands.setStiffness(cfgstiff.One)
       if self.getFrames() > 10 and not memory.kick_request.kick_running_:
+        self.finish()
+
+  class OtherKick(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        print ball.imageCenterX, ball.imageCenterY, ball.visionDistance
+      if self.getFrames() <= 3:
+        memory.walk_request.noWalk()
+        memory.kick_request.setFwdKick()
+        commands.setStiffness(cfgstiff.One)
+      if self.getFrames() > 10 and not memory.kick_request.kick_running_:
         self.postSignal("InGoal")
 
   class Walk(Node):
@@ -154,31 +166,31 @@ class Playing(StateMachine):
         memory.speech.say("take ball out of goal")
   
   def setup(self):
+  #  
+  #  kick = self.Kick()
+  #  stand = self.Stand()
+  #  goal_turn = self.Goalturn()
+  #  find_ball = self.SearchForBall()
+  #  ballwalk = self.Ballwalk(120, 20, 0.9, 0.2, 0.00075)
+  #  orient = self.OrientBallXY()
+  #  orient_x = self.OrientBallX()
+  #  orient_y = self.OrientBallY()
+  #  sit = pose.Sit()
+  #  pre_search_for_ball = self.PreSearchForBall()
     
-    kick = self.Kick()
-    stand = self.Stand()
-    goal_turn = self.Goalturn()
-    find_ball = self.SearchForBall()
-    ballwalk = self.Ballwalk(120, 20, 0.9, 0.2, 0.00075)
-    orient = self.OrientBallXY()
-    orient_x = self.OrientBallX()
-    orient_y = self.OrientBallY()
-    sit = pose.Sit()
-    pre_search_for_ball = self.PreSearchForBall()
-    
-    self.trans(stand, C, pre_search_for_ball)
-    self.trans(pre_search_for_ball, S("FindBall"), find_ball)
-    self.trans(find_ball, S("BallWalk"), ballwalk)
-    self.trans(ballwalk, S("GoalTurn"), goal_turn)
-    self.trans(goal_turn, S("OrientX"), orient_x)
-    self.trans(orient_x, S("OrientY"), orient_y)
-    self.trans(orient_y, S("Kick"), kick)
-    self.trans(goal_turn, S("Kick"), kick)
-    self.trans(kick, S("NotInGoal"), ballwalk)
-    self.trans(kick, S("InGoal"), pre_search_for_ball) 
-    self.setFinish(None)    
+  #  self.trans(stand, C, pre_search_for_ball)
+  #  self.trans(pre_search_for_ball, S("FindBall"), find_ball)
+  #  self.trans(find_ball, S("BallWalk"), ballwalk)
+  #  self.trans(ballwalk, S("GoalTurn"), goal_turn)
+  #  self.trans(goal_turn, S("OrientX"), orient_x)
+  #  self.trans(orient_x, S("OrientY"), orient_y)
+  #  self.trans(orient_y, S("Kick"), kick)
+  #  self.trans(goal_turn, S("Kick"), kick)
+  #  self.trans(kick, S("NotInGoal"), ballwalk)
+  #  self.trans(kick, S("InGoal"), pre_search_for_ball) 
+  #  self.setFinish(None)    
 
-  # self.trans(self.Stand(), C, self.Kick(), C, pose.Sit(), C, self.Off())
+    self.trans(self.Stand(), C, self.Kick(), C, self.Stand(), C, pose.Sit(), C, self.Off())
   #  self.trans(self.Stand(), C, self.Ping(), T(30.0), self.Off())
   #  self.trans(self.Stand(), C, self.OrientBallY(), C, self.Kick(), C, pose.Sit(), C, self.Off())
   # self.trans(self.Stand(), C, self.Goalturn(), C, self.Off())
