@@ -42,5 +42,5 @@ class Playing(StateMachine):
 
 def setup(self):
     stand = self.Stand()
-    self.trans(self.Stand(), C, self.Ballwalk(), C, off)
+    self.trans(self.Stand(), C, off)
 

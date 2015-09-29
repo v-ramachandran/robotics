@@ -33,4 +33,4 @@ class Playing(StateMachine):
     walk = self.Walk()
     sit = pose.Sit()
     off = self.Off()
-    self.trans(stand, C, sit, C, off)
+    self.trans(stand, C, off)

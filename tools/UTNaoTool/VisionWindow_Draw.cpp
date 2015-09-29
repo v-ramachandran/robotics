@@ -283,10 +283,10 @@ void VisionWindow::drawHorizonLine(ImageWidget *image) {
 }
 
 void VisionWindow::drawGoalCands(ImageWidget* image) {
+  ImageProcessor* processor = getImageProcessor(image);
+  QPainter painter(image->getImage());
   if(IS_RUNNING_CORE) {
-    QPainter painter(image->getImage());
     painter.setPen(QPen(QColor(0, 255, 127), 2));
-    ImageProcessor* processor = getImageProcessor(image);
     vector<struct TreeNode*> bests = processor->getGoalCandidates();
     
     for(std::vector<struct TreeNode*>::iterator node = bests.begin(); node != bests.end(); ++node){
@@ -310,6 +310,22 @@ void VisionWindow::drawGoalCands(ImageWidget* image) {
     rect = QRect(topleft, bottomright);
     painter.drawRect(rect);
   }
+  else if (world_object_block_ != NULL) {
+ 
+    struct TreeNode *node = processor->getBestGoalCandidate();
+    if(!node){
+      return;
+    }
+
+    painter.setPen(QPen(QColor(255, 0, 127), 2));
+    QRect rect;
+   //   std::cout<<best->topleft->x<<" "<<(*node)->topleft->y<<" "<<(*node)->bottomright->x<<" "<<(*node)->bottomright->y<<endl;
+    QPoint topleft = QPoint((node)->topleft->x, (node)->topleft->y);
+    QPoint bottomright = QPoint((node)->bottomright->x, (node)->bottomright->y);
+    rect = QRect(topleft, bottomright);
+    painter.drawRect(rect);
+  }
+
 
 }
 

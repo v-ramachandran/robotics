@@ -51,6 +51,7 @@ class ImageProcessor {
     void getBlobNodes();
     bool isImageLoaded();
     void detectBall();
+    void detectGoal();
     void findBall(int& imageX, int& imageY);
   private:
     int getTeamColor();
