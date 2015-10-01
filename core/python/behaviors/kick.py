@@ -145,6 +145,7 @@ class Playing(StateMachine):
 
   class Ballwalk(Node):
     def __init__(self, x_set, threshold, Kp, Kd, Ki):
+      self.unseen = 0
       self.error_x = 0
       self.derivative_x = 0
       self.integral_x = 0
@@ -158,6 +159,7 @@ class Playing(StateMachine):
     def run(self):
       ball = world_objects.getObjPtr(core.WO_BALL)
       if ball.seen:
+        self.unseen = 0
         memory.speech.say("ball seen")
         print ball.visionDistance
         new_error_x = max(0, ball.visionDistance * math.cos(ball.visionBearing) - self.x_set)
@@ -172,8 +174,21 @@ class Playing(StateMachine):
         
         commands.setWalkVelocity(velocity_x,0,(ball.visionBearing / (math.pi / 2)))
         if self.error_x <= self.threshold:
+          self.error_x = 0
+          self.derivative_x = 0
+          self.integral_x = 0
           commands.setWalkVelocity(0,0,0)
           self.postSignal("GoalTurn")
+      else:
+        print "HERE"
+        self.unseen = self.unseen + 1
+        if (self.unseen > 15):
+          self.unseen = 0
+          self.error_x = 0
+          self.derivative_x = 0
+          self.integral_x = 0
+          commands.setWalkVelocity(0,0,0)
+          self.postSignal("PreFindBall")
 
   class Goalturn(Node):
     def __init__(self):
@@ -185,8 +200,14 @@ class Playing(StateMachine):
       beacon_pink_yellow = world_objects.getObjPtr(core.WO_BEACON_PINK_YELLOW)
       beacon_yellow_pink = world_objects.getObjPtr(core.WO_BEACON_YELLOW_PINK)
       error = 20
-      print beacon_pink_yellow.seen,beacon_yellow_pink.seen, goal.seen, goal.visionBearing
+      print beacon_pink_yellow.seen,beacon_yellow_pink.seen, goal.seen, goal.visionBearing, beacon_pink_yellow.visionBearing, beacon_yellow_pink.visionBearing
       if (beacon_pink_yellow.seen and beacon_yellow_pink.seen) or (goal.seen and goal.visionBearing <= 0.1 and goal.visionBearing >= -0.1):
+        commands.setWalkVelocity(0,0,0)
+        self.postSignal("Dribble")
+      elif beacon_pink_yellow.seen and beacon_pink_yellow.visionDistance <= 300 and beacon_pink_yellow.visionBearing >= 0.2:
+        commands.setWalkVelocity(0,0,0)
+        self.postSignal("Dribble")
+      elif beacon_yellow_pink.seen and beacon_yellow_pink.visionDistance <= 300 and beacon_yellow_pink.visionBearing <= -0.2:
         commands.setWalkVelocity(0,0,0)
         self.postSignal("Dribble")
       else:
@@ -207,13 +228,26 @@ class Playing(StateMachine):
         beacon_pink_yellow = world_objects.getObjPtr(core.WO_BEACON_PINK_YELLOW)
         beacon_yellow_pink = world_objects.getObjPtr(core.WO_BEACON_YELLOW_PINK)
         goal = world_objects.getObjPtr(core.WO_OWN_GOAL)
+
         if beacon_pink_yellow.seen and beacon_yellow_pink.seen:
-          if (((beacon_pink_yellow.visionDistance - ball.visionDistance) < 1000) and ((beacon_pink_yellow.visionDistance - ball.visionDistance) >= 0)) or (((beacon_yellow_pink.visionDistance - ball.visionDistance) < 1000) and ((beacon_yellow_pink.visionDistance - ball.visionDistance) >= 0)):
+          if ((beacon_pink_yellow.visionDistance < 1500) and ((beacon_pink_yellow.visionDistance - ball.visionDistance) < 1200) and ((beacon_pink_yellow.visionDistance - ball.visionDistance) >= 0)) or ((beacon_yellow_pink.visionDistance < 1500) and  ((beacon_yellow_pink.visionDistance - ball.visionDistance) < 1200) and ((beacon_yellow_pink.visionDistance - ball.visionDistance) >= 0)):
             print "************** kicking ********************", beacon_pink_yellow.visionDistance, beacon_yellow_pink.visionDistance, ball.visionDistance
             commands.setWalkVelocity(0,0,0)
             self.postSignal("OrientX")
           else:
             commands.setWalkVelocity(0.35, 0, (ball.visionBearing / (math.pi / 2)))
+        elif beacon_pink_yellow.seen:
+          if beacon_pink_yellow.visionDistance <= 300 and ((beacon_yellow_pink.visionDistance - ball.visionDistance) >= 0):
+            commands.setWalkVelocity(0,0,0)
+            self.postSignal("OrientX")
+          else:
+            commands.setWalkVelocity(0.35, 0, (ball.visionBearing / (math.pi / 2)))                  
+        elif beacon_yellow_pink.seen: 
+          if beacon_yellow_pink.visionDistance <= 300 and ((beacon_yellow_pink.visionDistance - ball.visionDistance) >= 0):
+            commands.setWalkVelocity(0,0,0)
+            self.postSignal("OrientX")
+          else:
+            commands.setWalkVelocity(0.35, 0, (ball.visionBearing / (math.pi / 2)))          
         elif goal.seen:
           print "goal distance", goal.visionDistance
           if (goal.visionDistance - ball.visionDistance > 1500):
@@ -253,6 +287,7 @@ class Playing(StateMachine):
     self.trans(pre_search_for_ball, S("FindBall"), find_ball)
     self.trans(find_ball, S("BallWalk"), ballwalk)
     self.trans(ballwalk, S("GoalTurn"), goal_turn)
+    self.trans(ballwalk, S("PreFindBall"), pre_search_for_ball)
     self.trans(goal_turn, S("Dribble"), dribble)
     self.trans(orient_x, S("OrientY"), orient_y)
     self.trans(orient_y, S("Kick"), kick)
