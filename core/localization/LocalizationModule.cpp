@@ -83,14 +83,14 @@ void LocalizationModule::processFrame() {
     auto estimatedGlobalBall = Point2D(ballState[0],ballState[1]);
     auto estimatedRelativeBall = estimatedGlobalBall.globalToRelative(self.loc, self.orientation);
    // ball.loc = globalBall;
-    ball.loc.x = estimatedRelativeBall.x + ballState[2] * 4 + ballState[4] * 8;
-    ball.loc.y = estimatedRelativeBall.y + ballState[3] * 4 + ballState[5] * 8;
+    ball.loc.x = estimatedRelativeBall.x + ballState[2] * 3 + ballState[4] * 6.125;
+    ball.loc.y = estimatedRelativeBall.y + ballState[3] * 3 + ballState[5] * 6.125;
     ball.endLoc = relBall;
    // ball.distance = ball.visionDistance;
     ball.distance = sqrt(ball.loc.x * ball.loc.x + ball.loc.y * ball.loc.y);
    // ball.bearing = ball.visionBearing;
     ball.bearing = atan(ball.loc.y/ball.loc.x);
-    ball.absVel = Vector2D(ballState[2],ballState[3]);
+    ball.absVel = Vector2D(ballState[2] + ballState[4] * 3, ballState[3] + ballState[5] * 3);
 
     // Update the localization memory objects with localization calculations
     // so that they are drawn in the World window

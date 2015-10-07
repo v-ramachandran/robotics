@@ -31,7 +31,7 @@ BallFilter::BallFilter(){
                 0,0,0,1,0,0,
                 0,0,0,0,1,0,
                 0,0,0,0,0,1;
-	state << 0,0,0,0,10.0f,-2.0f;
+	state << 0,0,0,0,3.0f,-1.0f;
 }
 
 void BallFilter::reset() {
@@ -65,7 +65,7 @@ void BallFilter::reset() {
                 0,0,0,1,0,0,
                 0,0,0,0,1,0,
                 0,0,0,0,0,1;
-  state << 0,0,0,0,10.0f,-2.0f;
+  state << 0,0,0,0,3.0f,-1.0f;
 }
 
 Matrix<float,6,1> BallFilter::specificFunction(Matrix<float,6,1> newMeasurement){

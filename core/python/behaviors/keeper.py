@@ -29,6 +29,9 @@ class Blocker(Node):
     self.timesUnseen = 0
     super(self.__class__, self).__init__()  
   
+  def compute_y_at_origin(self, point1, point2):
+    return 0
+
   def run(self):
     ball = mem_objects.world_objects[core.WO_BALL]
     #print ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y
@@ -71,7 +74,7 @@ class BlockingLeft(StateMachine):
       self.finish()
 
   def setup(self):
-    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockLeft, 0.1), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockLeft, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
 
 class BlockingRight(StateMachine):
   class PerformLogistics(Node):
@@ -82,7 +85,7 @@ class BlockingRight(StateMachine):
       self.finish()
 
   def setup(self):
-    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockRight, 0.1), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockRight, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
 
 class BlockingCenter(StateMachine):
   
@@ -94,7 +97,7 @@ class BlockingCenter(StateMachine):
       self.finish()
     
   def setup(self):
-    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockCenter, 0.1), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockCenter, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
 
 class Playing(LoopingStateMachine):
   def setup(self):
