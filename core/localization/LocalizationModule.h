@@ -3,6 +3,7 @@
 #include <Module.h>
 #include <memory/MemoryCache.h>
 #include <localization/LocalizationParams.h>
+#include <localization/KalmanFilter.h>
 
 class LocalizationModule : public Module {
   public:
@@ -20,4 +21,5 @@ class LocalizationModule : public Module {
     MemoryCache cache_;
     TextLogger*& tlogger_;
     LocalizationParams params_;
+    BallFilter* ballFilter;
 };

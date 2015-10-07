@@ -11,7 +11,9 @@
 #include <vision/Classifier.h>
 #include <common/RobotCalibration.h>
 #include <vision/structures/BallCandidate.h>
+#include <vision/structures/TreeNode.h>
 #include <math/Pose3D.h>
+#include <cmath>
 
 class BeaconDetector;
 
@@ -35,10 +37,21 @@ class ImageProcessor {
     void setCalibration(RobotCalibration);
     void enableCalibration(bool value);
     void updateTransform();
+    bool tiltAngleTest(struct TreeNode * treenode, float threshold);
+    bool isSquare(struct TreeNode * treeNode);
+    bool isAtleastMinimumSize(struct TreeNode * treeNode);
+    bool isCircularArea(struct TreeNode * treeNode);
+    bool hasMinimumArea(struct TreeNode * treeNode);
+    bool hasBallAspectRatio(struct TreeNode * treeNode);
+    bool goalAspectRatioTest(struct TreeNode * node);
     std::vector<BallCandidate*> getBallCandidates();
+    std::vector<TreeNode*> getGoalCandidates();
     BallCandidate* getBestBallCandidate();
+    struct TreeNode* getBestGoalCandidate();
+    void getBlobNodes();
     bool isImageLoaded();
     void detectBall();
+    void detectGoal();
     void findBall(int& imageX, int& imageY);
   private:
     int getTeamColor();
@@ -52,6 +65,7 @@ class ImageProcessor {
     VisionParams vparams_;
     unsigned char* color_table_;
     TextLogger* textlogger;
+    std::map<Color, struct DisjointSet> colorDisjointSets;
 
     float getHeadPan() const;
     float getHeadTilt() const;
