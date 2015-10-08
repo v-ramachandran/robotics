@@ -27,10 +27,13 @@ class BlockCenter(Node):
 class Blocker(Node):
   def __init__(self):
     self.timesUnseen = 0
+    self.lastNoisyX = 0
     super(self.__class__, self).__init__()  
   
   def compute_y_at_origin(self, point1, point2):
-    return 0
+    slope = (point2.y - point1.y)/(point2.x - point1.x)
+    intercept = point2.y - (slope * point2.x)
+    return intercept
 
   def run(self):
     ball = mem_objects.world_objects[core.WO_BALL]
@@ -39,27 +42,41 @@ class Blocker(Node):
     #print futureX
     if ball.seen:
       self.timesUnseen = 0
-      commands.setHeadPan(ball.visionBearing, 0.25)
-      if (ball.distance < 500) and (ball.absVel.x < -25):
+      commands.setHeadPan(ball.visionBearing, 0.2)
+      if (ball.distance < 500) and (ball.absVel.x < -50) and (ball.endLoc.x < self.lastNoisyX + 3):
         UTdebug.log(15, "Ball is close, blocking!")
-        if (ball.bearing > 30 * core.DEG_T_RAD):
-          if(ball.loc.x >= 0):
-            print "---------left", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
-            choice = "left"
-          else:
-            print "---------right", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
-            choice = "right"
-        elif (ball.bearing < -30 * core.DEG_T_RAD):
-          if ball.loc.x >= 0:
-            print "-----------right", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
-            choice = "right"
-          else:
-            print "-----------left", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
-            choice = "left"
+        y_at_origin = self.compute_y_at_origin(ball.loc, ball.endLoc)
+        if y_at_origin >= 120:
+          print "---------left", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
+          choice = "left"
+        elif y_at_origin < -120:
+          print "---------right", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
+          choice = "right"
         else:
-          print "---------center", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
-          choice = "center"
-        self.postSignal(choice)
+         print "---------center", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
+         choice = "center"
+        self.postSignal(choice)  
+#      if (ball.distance < 500) and (ball.absVel.x < -25):
+#        UTdebug.log(15, "Ball is close, blocking!")
+#        if (ball.bearing > 30 * core.DEG_T_RAD):
+#          if(ball.loc.x >= 0):
+#            print "---------left", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
+#            choice = "left"
+#          else:
+#            print "---------right", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
+#            choice = "right"
+#        elif (ball.bearing < -30 * core.DEG_T_RAD):
+#          if ball.loc.x >= 0:
+#            print "-----------right", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
+#            choice = "right"
+#          else:
+#            print "-----------left", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
+#            choice = "left"
+#        else:
+#          print "---------center", ball.bearing, ball.distance, ball.loc.x, ball.loc.y, ball.absVel.x, ball.absVel.y, ball.endLoc.x, ball.endLoc.y
+#          choice = "center"
+#        self.postSignal(choice)
+      self.lastNoisyX = ball.endLoc.x
     else:
       self.timesUnseen = self.timesUnseen + 1
     if self.timesUnseen > 10:

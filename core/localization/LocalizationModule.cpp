@@ -6,7 +6,8 @@
 
 // Boilerplate
 LocalizationModule::LocalizationModule() : tlogger_(textlogger) {
-  ballFilter = new BallFilter();
+  ballFilter = new ExtendedBallFilter();
+  timesUnseen = 0;
 }
 
 // Boilerplate
@@ -70,6 +71,7 @@ void LocalizationModule::processFrame() {
     
   //TODO: modify this block to use your Kalman filter implementation
   if(ball.seen) {
+    timesUnseen = 0;
     // Compute the relative position of the ball from vision readings
     auto relBall = Point2D::getPointFromPolar(ball.visionDistance, ball.visionBearing);
 
@@ -100,8 +102,11 @@ void LocalizationModule::processFrame() {
   } 
   //TODO: How do we handle not seeing the ball?
   else {
-    ball.distance = 10000.0f;
-    ball.bearing = 0.0f;
-    ballFilter->reset();
+    timesUnseen = timesUnseen + 1;    
+    if (timesUnseen > 10) {
+      ball.distance = 10000.0f;
+      ball.bearing = 0.0f;
+      ballFilter->reset();
+    }
   }
 }

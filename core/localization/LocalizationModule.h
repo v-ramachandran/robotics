@@ -4,6 +4,7 @@
 #include <memory/MemoryCache.h>
 #include <localization/LocalizationParams.h>
 #include <localization/KalmanFilter.h>
+#include <localization/ExtendedKalmanFilter.h>
 
 class LocalizationModule : public Module {
   public:
@@ -21,5 +22,6 @@ class LocalizationModule : public Module {
     MemoryCache cache_;
     TextLogger*& tlogger_;
     LocalizationParams params_;
-    BallFilter* ballFilter;
+    KalmanFilter<6>* ballFilter;
+    int timesUnseen;
 };
