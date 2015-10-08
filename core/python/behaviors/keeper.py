@@ -43,7 +43,7 @@ class Blocker(Node):
     if ball.seen:
       self.timesUnseen = 0
       commands.setHeadPan(ball.visionBearing, 0.2)
-      if (ball.distance < 500) and (ball.absVel.x < -50) and (ball.endLoc.x < self.lastNoisyX + 3):
+      if (ball.distance < 500) and (ball.absVel.x < -50):
         UTdebug.log(15, "Ball is close, blocking!")
         y_at_origin = self.compute_y_at_origin(ball.loc, ball.endLoc)
         if y_at_origin >= 120:

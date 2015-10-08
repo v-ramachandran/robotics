@@ -5,6 +5,7 @@
 #include <localization/LocalizationParams.h>
 #include <localization/KalmanFilter.h>
 #include <localization/ExtendedKalmanFilter.h>
+#include <localization/GenericKalmanFilter.h>
 
 class LocalizationModule : public Module {
   public:
