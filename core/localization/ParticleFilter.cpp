@@ -7,8 +7,53 @@ ParticleFilter::ParticleFilter(MemoryCache& cache, TextLogger*& tlogger)
 }
 
 void ParticleFilter::init(Point2D loc, float orientation) {
+
+  particleIndices.resize(numParticles);
+  std::iota(particleIndices.begin(), particleIndices.end(), 0);
+
   mean_.translation = loc;
   mean_.rotation = orientation;
+  particles().resize(numParticles);
+  int x = xMin;
+  int y = yMin;
+  for(auto& p : particles()) {
+    p.x = x;
+    p.y = y;
+    p.t = rand_.sampleN(0, M_PI / 4);
+    p.w = rand_.sampleU();
+    y++;
+    if (y > yMax) {
+      x++;
+      y = yMin;
+    }
+  }
+}
+
+void ParticleFilter::resampleByImportance() {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::vector<float> particleWeights(numParticles);
+  
+  // Retrieve Weights
+  for(int index = 0; index < numParticles; index++) {
+    particleWeights[index] = particles()[index].w;
+  }
+  
+  // Create sampled particles vector
+  std::vector<Particle> resampledParticles(numParticles);  
+  std::piecewise_constant_distribution<> distribution(particleIndices.begin(), particleIndices.end(), particleWeights.begin());
+  for(int index = 0; index < numParticles; index++) {
+    Particle particle = particles()[distribution(gen)];
+    resampledParticles[index].x = particle.x;
+    resampledParticles[index].y = particle.y;
+    resampledParticles[index].t = particle.t;
+    resampledParticles[index].w = particle.w;
+  }
+
+  // Copy sampled particles back
+  for(int index = 0; index < numParticles; index++) {
+    particles()[index] = resampledParticles[index];
+  }
 }
 
 void ParticleFilter::processFrame() {
@@ -45,3 +90,5 @@ const Pose2D& ParticleFilter::pose() const {
   }
   return mean_;
 }
+
+
