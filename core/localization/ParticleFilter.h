@@ -43,7 +43,7 @@ class ParticleFilter {
     int yMin = -125;
     int yMax = 125;
     int numParticles= 1000;
-    int noiseParticles = 0;
+    int noiseParticles = 1;
     std::vector<int> particleIndices;
     mutable Pose2D mean_;
     mutable bool dirty_;
