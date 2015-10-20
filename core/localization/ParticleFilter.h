@@ -39,7 +39,6 @@ class ParticleFilter {
     int xMax = 250;
     int yMin = -125;
     int yMax = 125;
-//    int numParticles = ((xMax-xMin)+1)*((yMax-yMin)+1);
     int numParticles= 1000;
     int noiseParticles = 0;
     std::vector<int> particleIndices;
