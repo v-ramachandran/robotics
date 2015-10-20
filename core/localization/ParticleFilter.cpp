@@ -48,7 +48,9 @@ const Particle ParticleFilter::kMeans() const {
 		clusterCenters[i].t = particles()[i].t;
   }
   map<int, vector<int>> clusters;
-  while(1){
+	int count = 20;
+	int threshold = 0.5;
+  while(count){
 		for(int i=0; i< particles().size(); ++i){
 			int center = 0;
 			float centerDistance = distance(particles()[i], clusterCenters[0]);
@@ -61,7 +63,7 @@ const Particle ParticleFilter::kMeans() const {
 			}
 			clusters[center].push_back(i);
 		}
-		
+		count --;
 		bool convergence = true;
 		for(int i=0; i<4; ++i){
 			float sumX = 0;
@@ -73,7 +75,7 @@ const Particle ParticleFilter::kMeans() const {
 				sumY += particles()[clusters[i][j]].y;
 				sumT += particles()[clusters[i][j]].t;
 			}
-			if(clusterCenters[i].x != sumX / clusters[i].size() || clusterCenters[i].y != sumY / clusters[i].size())
+			if(abs(clusterCenters[i].x - sumX / clusters[i].size()) > threshold || abs(clusterCenters[i].y - sumY / clusters[i].size()) > threshold)
 				convergence= false;
 			clusterCenters[i].x = sumX / clusters[i].size();
 			clusterCenters[i].y = sumY / clusters[i].size();
@@ -93,6 +95,7 @@ const Particle ParticleFilter::kMeans() const {
 		}
 	}
 	return clusterCenters[maxClusterIndex];
+	
 }
 
 bool ParticleFilter::isEqual(float x , float y){
@@ -225,7 +228,7 @@ const Pose2D& ParticleFilter::pose() const {
     // Compute the mean pose estimate
     mean_ = Pose2D();
     using T = decltype(mean_.translation);
-   /* for(const auto& p : particles()) {
+ /*   for(const auto& p : particles()) {
       mean_.translation += T(p.x,p.y);
       mean_.rotation += p.t;
     }
