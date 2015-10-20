@@ -55,8 +55,8 @@ void ParticleFilter::propagateToNext() {
 		p.y = disp.translation.x * sin(p.t)+ disp.translation.y * cos(p.t) + p.y;
 
 //    if(!isEqual(disp.translation.x,0) || !isEqual(disp.translation.y,0)){
-      p.x += rand_.sampleN(0, 5);
-      p.y += rand_.sampleN(0, 5);
+      p.x += rand_.sampleN(0, 7);
+      p.y += rand_.sampleN(0, 7);
 //    }
     p.w = p.w;
     
@@ -97,7 +97,7 @@ float ParticleFilter::createParticleWeights() {
         //cout << i << "|" << p.x << "|" << object.loc.x << "|" << p.y << "|" << object.loc.y << "|" << object.loc.x << "|" << object.loc.y << "|" << probability << "|" << penalty << "|" << p.w << endl;
         float rotationProbability = gaussianProbability(object.visionBearing, Point2D(p.x,p.y).getBearingTo(object.loc, p.t), 0.01);
         p.w = p.w - orientationPenaltyScale*(1-rotationProbability);
-        cout << i << "|" << object.visionBearing << "|" << Point2D(p.x,p.y).getBearingTo(object.loc, p.t) << "|" << rotationProbability << "|" << orientationPenaltyScale*(1-rotationProbability) << "|" << p.w << endl;
+        //cout << i << "|" << object.visionBearing << "|" << Point2D(p.x,p.y).getBearingTo(object.loc, p.t) << "|" << rotationProbability << "|" << orientationPenaltyScale*(1-rotationProbability) << "|" << p.w << endl;
       } else if (!(object.seen) && !(checkBeaconVisibility(object.loc, p))) {
         p.w = p.w - min(50, abs((rand_.sampleN(0,1))*35));
       } else {

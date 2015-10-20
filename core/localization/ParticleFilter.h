@@ -41,6 +41,8 @@ class ParticleFilter {
     int yMax = 125;
     int numParticles= 1000;
     int noiseParticles = 1;
+    float alphaFast = 0.9;
+    float alphaSlow = 0.1;
     std::vector<int> particleIndices;
     mutable Pose2D mean_;
     mutable bool dirty_;
