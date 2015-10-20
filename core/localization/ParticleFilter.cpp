@@ -33,6 +33,68 @@ void ParticleFilter::init(Point2D loc, float orientation) {
   }
 }
 
+const float ParticleFilter::distance(Particle X, Particle Y) const {
+	return sqrt((X.x - Y.x)*(X.x - Y.x) + (X.y - Y.y)*(X.y - Y.y));
+}
+
+const Particle ParticleFilter::kMeans() const {
+  
+  Particle clusterCenters[4];
+  for(int i=0; i<4; ++i){
+    srand (time(NULL));
+    int index = rand() % particles().size();
+    clusterCenters[i].x = particles()[i].x;
+    clusterCenters[i].y = particles()[i].y;
+		clusterCenters[i].t = particles()[i].t;
+  }
+  map<int, vector<int>> clusters;
+  while(1){
+		for(int i=0; i< particles().size(); ++i){
+			int center = 0;
+			float centerDistance = distance(particles()[i], clusterCenters[0]);
+			for(int j=1; j<4; ++j){
+				float dist = distance(particles()[i], clusterCenters[j]);
+				if(dist < centerDistance){
+					center = j;
+					centerDistance = dist;
+				}
+			}
+			clusters[center].push_back(i);
+		}
+		
+		bool convergence = true;
+		for(int i=0; i<4; ++i){
+			float sumX = 0;
+			float sumY = 0;
+			float sumT = 0;
+			int count = 0;
+			for(int j=0; j<clusters[i].size(); ++j){
+				sumX += particles()[clusters[i][j]].x;
+				sumY += particles()[clusters[i][j]].y;
+				sumT += particles()[clusters[i][j]].t;
+			}
+			if(clusterCenters[i].x != sumX / clusters[i].size() || clusterCenters[i].y != sumY / clusters[i].size())
+				convergence= false;
+			clusterCenters[i].x = sumX / clusters[i].size();
+			clusterCenters[i].y = sumY / clusters[i].size();
+			clusterCenters[i].t = sumT / clusters[i].size();
+			
+		}
+		if (convergence)
+			break;
+  }
+
+	int maxClusterSize = 0;
+	int maxClusterIndex = -1;
+	for(int i = 0; i< 4; ++i){
+		if(clusters[i].size() > maxClusterSize){
+			maxClusterSize = clusters[i].size();
+			maxClusterIndex = i;
+		}
+	}
+	return clusterCenters[maxClusterIndex];
+}
+
 bool ParticleFilter::isEqual(float x , float y){
   float epsilon = 0.00001;
   return std::abs(x-y) <= epsilon;
@@ -225,13 +287,16 @@ const Pose2D& ParticleFilter::pose() const {
     // Compute the mean pose estimate
     mean_ = Pose2D();
     using T = decltype(mean_.translation);
-    for(const auto& p : particles()) {
+   /* for(const auto& p : particles()) {
       mean_.translation += T(p.x,p.y);
       mean_.rotation += p.t;
     }
     
     if(particles().size() > 0)
-      mean_ /= particles().size();
+      mean_ /= particles().size();*/
+		Particle clusterCentroid = kMeans();
+		mean_.translation = T(clusterCentroid.x, clusterCentroid.y);
+		mean_.rotation = clusterCentroid.t;		
     cout<<mean_.rotation<<endl;
     dirty_ = false;
   }
