@@ -4,7 +4,6 @@
 #include <memory/WorldObjectBlock.h>
 
 
-
 ParticleFilter::ParticleFilter(MemoryCache& cache, TextLogger*& tlogger) 
   : cache_(cache), tlogger_(tlogger), dirty_(true) {
 }
@@ -20,6 +19,7 @@ void ParticleFilter::init(Point2D loc, float orientation) {
   int x = xMin;
   int y = yMin;
   for(auto& p : particles()) {
+<<<<<<< HEAD
  //   p.x = x;
  //   p.y = y;
     p.x = rand_.sampleN(0, 750);
@@ -118,6 +118,7 @@ float ParticleFilter::createParticleWeights() {
 	p.w = 1;
 	for(int i = 0; i < 6; ++i){
 	  if(checkBeaconVisibility(beacons,i,p)){
+<<<<<<< HEAD
         
    	  	float meanDistance = sqrt((beacons[i].x - p.x) * (beacons[i].x - p.x) + (beacons[i].y - p.y) * (beacons[i].y - p.y));
 		    float measurementDistance;
@@ -166,7 +167,6 @@ void ParticleFilter::resampleByImportance() {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::vector<float> particleWeights(numParticles);
-
   // Retrieve Weights
   for(int index = 0; index < numParticles; index++) {
     particleWeights[index] = particles()[index].w;
@@ -196,6 +196,7 @@ void ParticleFilter::resampleByImportance() {
     particle.w = 600;
   }
 }
+
 
 void ParticleFilter::processFrame() {
   // Indicate that the cached mean needs to be updated
