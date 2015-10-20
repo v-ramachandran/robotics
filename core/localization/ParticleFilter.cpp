@@ -4,6 +4,7 @@
 #include <memory/WorldObjectBlock.h>
 
 
+
 ParticleFilter::ParticleFilter(MemoryCache& cache, TextLogger*& tlogger) 
   : cache_(cache), tlogger_(tlogger), dirty_(true) {
 }
@@ -196,7 +197,6 @@ void ParticleFilter::resampleByImportance() {
   }
 }
 
-
 void ParticleFilter::processFrame() {
   // Indicate that the cached mean needs to be updated
   dirty_ = true;
@@ -237,5 +237,4 @@ const Pose2D& ParticleFilter::pose() const {
   }
   return mean_;
 }
-
 
