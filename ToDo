@@ -1,0 +1,185 @@
+5. Tuning kick to handle inclined surfaces (MOSTLY DONE)
+10. orienting with beacon, tuning and aiming for the goal
+12. color table
+dribble speed
+different components
+
+
+190, 102
+120, 190
+
+
+  class StandStraightWithSignal(Node):
+    def run(self):
+      commands.standStraight()
+      if self.getTime() > 5.0:
+        memory.speech.say("Look! I'm standing straight!")
+        print 1 
+        self.postSignal("TurnHead")
+
+  
+  class StandWithSignal(Node):
+    def run(self):
+      commands.stand()
+      if self.getTime() > 5.0:
+        memory.speech.say("I'm just standing normally.")
+        print 2        
+        self.postSignal("StandStraightWithSignal")
+
+  class TurnHead(Node):
+    def run(self):
+      commands.setHeadPan(.1)
+      print 3      
+      self.postSignal("StandWithSignal")
+
+  class Stand(Node):
+    def run(self):
+      commands.stand()
+      
+      if self.getTime() > 3.0:
+        self.finish()
+  
+  class Ping(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        print "PRINTING", ball.imageCenterY, ball.imageCenterX
+  
+  class OrientBallXY(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        y_velocity = 0
+        if ball.imageCenterX > 129:
+          y_velocity = -0.2
+        elif ball.imageCenterX < 123:
+          y_velocity = 0.2
+
+        x_velocity = 0
+        if ball.imageCenterY < 206:
+          x_velocity = 0.2
+
+        if (x_velocity == 0) and (y_velocity == 0):
+          commands.setWalkVelocity(0,0,0)
+          self.finish()
+        else:
+          commands.setWalkVelocity(x_velocity, y_velocity, 0)
+      else:
+        print "LOST THE BALL"
+        commands.setWalkVelocity(0,0,0)
+        #self.finish()
+
+  class OrientBallY(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        memory.speech.say("ball seen")
+        print "PRINTING", ball.imageCenterY, ball.imageCenterX
+        if ball.imageCenterX > 127:
+          commands.setWalkVelocity(0,-0.21,0)
+        elif ball.imageCenterX < 125:
+          commands.setWalkVelocity(0,0.21,0)
+        else:
+          commands.setWalkVelocity(0,0,0)
+          self.finish()
+      else:
+        print "LOST THE BALL"
+        commands.setWalkVelocity(0,0,0)
+        #self.finish()
+
+  class OrientBallX(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        memory.speech.say("ball seen")
+        print "PRINTING", ball.imageCenterY, ball.imageCenterX
+        if ball.imageCenterY < 208:
+          commands.setWalkVelocity(0.31,0,0)
+        else:
+          commands.setWalkVelocity(0,0,0)
+          self.finish()
+      else:
+        print "LOST THE BALL"
+        commands.setWalkVelocity(0,0,0)
+        #self.finish()
+
+  class SearchForBall(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        commands.setWalkVelocity(0,0,0)
+        self.finish()
+      else:
+        commands.setWalkVelocity(0,0,0.25)
+
+  class Kick(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        print ball.imageCenterX, ball.imageCenterY, ball.visionDistance
+      if self.getFrames() <= 3:
+        memory.walk_request.noWalk()
+        memory.kick_request.setFwdKick()
+        commands.setStiffness(cfgstiff.One)
+      if self.getFrames() > 10 and not memory.kick_request.kick_running_:
+        self.finish()
+
+  class Walk(Node):
+    def run(self):
+      commands.setWalkVelocity(0.5,0,0)
+
+  class Ballwalk(Node):
+    def __init__(self, x_set, threshold, Kp, Kd, Ki):
+      self.error_x = 0
+      self.derivative_x = 0
+      self.integral_x = 0
+      self.x_set = x_set
+      self.threshold = threshold
+      self.Kp = Kp
+      self.Kd = Kd
+      self.Ki = Ki
+      super(self.__class__, self).__init__()
+
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        memory.speech.say("ball seen")
+        print ball.visionDistance
+        new_error_x = max(0, ball.visionDistance * math.cos(ball.visionBearing) - self.x_set)
+        self.derivative_x = (new_error_x - self.error_x)
+        self.integral_x = self.integral_x + new_error_x 
+        self.error_x = new_error_x  
+        
+        velocity_x =  self.Kp * self.error_x + self.Kd * self.derivative_x + self.Ki * self.integral_x
+        velocity_x = velocity_x / 1000 
+        velocity_x = min(velocity_x, 0.6)
+        velocity_x = max(0.2, velocity_x)
+        
+        print velocity_x
+        commands.setWalkVelocity(velocity_x,0,(ball.visionBearing / (math.pi / 2)))
+        if self.error_x <= self.threshold:
+          commands.setWalkVelocity(0,0,0)
+          self.finish()
+
+  class Goalturn(Node):
+    def __init__(self):
+      super(self.__class__, self).__init__()
+  
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      goal = world_objects.getObjPtr(core.WO_OWN_GOAL)
+      error = 20
+      print goal.seen, math.fabs(ball.imageCenterX - goal.imageCenterX)
+      if goal.seen and (math.fabs(ball.imageCenterX - goal.imageCenterX) <= error):
+        commands.setWalkVelocity(0,0,0)
+        self.finish()
+      else :
+        commands.setWalkVelocity(0,0.4, (ball.visionBearing / (math.pi / 2)))
+
+  class Off(Node):
+    def run(self):
+      commands.setStiffness(cfgstiff.Zero)
+      if self.getTime() > 2.0:
+        memory.speech.say("turned off stiffness")
+        self.finish()
+  
