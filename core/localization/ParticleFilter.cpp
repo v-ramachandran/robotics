@@ -19,7 +19,6 @@ void ParticleFilter::init(Point2D loc, float orientation) {
   int x = xMin;
   int y = yMin;
   for(auto& p : particles()) {
-<<<<<<< HEAD
  //   p.x = x;
  //   p.y = y;
     p.x = rand_.sampleN(0, 750);
