@@ -7,6 +7,7 @@
 #include <memory/MemoryCache.h>
 #include <memory/LocalizationBlock.h>
 #include <localization/Logging.h>
+#include <vision/BeaconDetector.h>
 
 class ParticleFilter {
   public:
@@ -22,6 +23,10 @@ class ParticleFilter {
     inline std::vector<Particle>& particles() {
       return cache_.localization_mem->particles;
     }
+    void propagateToNext();
+    float createParticleWeights();
+    float gaussianProbability(float x, float mean, float var);
+    bool checkBeaconVisibility(Point2D beacons[], int i, Particle p );
     void resampleByImportance();
 
   private:
