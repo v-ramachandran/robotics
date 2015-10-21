@@ -45,9 +45,9 @@ class ParticleFilter {
     int yMin = -125;
     int yMax = 125;
     int numParticles= 1000;
-    int noiseParticles = 1;
-    float alphaFast = 0.5;
-    float alphaSlow = 0.005;
+    int noiseParticles = 0;
+    float alphaFast = 0.9;
+    float alphaSlow = 0.003;
     float wSlow = 0.0;
     float wFast = 0.0;
     std::vector<int> particleIndices;

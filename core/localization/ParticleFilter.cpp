@@ -87,17 +87,28 @@ const Particle ParticleFilter::kMeans() const {
 			break;
   }
 
-/*	int maxClusterSize = 0;
+	int maxClusterSize = 0;
+	int secondMaxClusterSize = 0;
 	int maxClusterIndex = -1;
+	int secondMaxClusterIndex = -1;
 	for(int i = 0; i< 4; ++i){
 		if(clusters[i].size() > maxClusterSize){
 			maxClusterSize = clusters[i].size();
 			maxClusterIndex = i;
 		}
+		if(clusters[i].size() > secondMaxClusterSize && clusters[i].size() != maxClusterSize){
+			secondMaxClusterSize = clusters[i].size();
+			secondMaxClusterIndex = i;
+		}
 	}
-	return clusterCenters[maxClusterIndex];*/
+	Particle centroid;
+	centroid.x = (clusterCenters[maxClusterIndex].x + clusterCenters[secondMaxClusterIndex].x) / 2;
+	centroid.y = (clusterCenters[maxClusterIndex].y + clusterCenters[secondMaxClusterIndex].y) / 2;
+	centroid.t = (clusterCenters[maxClusterIndex].t + clusterCenters[secondMaxClusterIndex].t) / 2;
+	centroid.w = 1;
+	return centroid;
 
-float sumX=0;
+/*float sumX=0;
 float sumY=0;
 float sumT=0;
 for(int i=0; i<4; ++i){
@@ -110,7 +121,7 @@ centroid.x = sumX / 4;
 centroid.y = sumY / 4;
 centroid.t = sumT / 4;
 centroid.w = 1;
-return centroid;
+return centroid;*/
 }
 
 bool ParticleFilter::isEqual(float x , float y){
@@ -122,7 +133,7 @@ void ParticleFilter::propagateToNext() {
 	
   const auto& disp = cache_.odometry->displacement;
 	log(41, "Updating particles from odometry: %2.f,%2.f @ %2.8f", disp.translation.x, disp.translation.y, disp.rotation * RAD_T_DEG);
-  printf("Updating particles from odometry: %2.f,%2.f @ %2.8f \n", disp.translation.x, disp.translation.y, disp.rotation);
+  // printf("Updating particles from odometry: %2.f,%2.f @ %2.8f \n", disp.translation.x, disp.translation.y, disp.rotation);
 	for(auto& p : particles()) { 
 		float meanT = disp.rotation + p.t;
 		p.t = disp.rotation + p.t;
@@ -135,8 +146,8 @@ void ParticleFilter::propagateToNext() {
 		p.y = disp.translation.x * sin(p.t)+ disp.translation.y * cos(p.t) + p.y;
 
 //    if(!isEqual(disp.translation.x,0) || !isEqual(disp.translation.y,0)){
-      p.x += rand_.sampleN(0, 5);
-      p.y += rand_.sampleN(0, 5);
+      p.x += rand_.sampleN(0, 7);
+      p.y += rand_.sampleN(0, 7);
 //    }
     p.w = p.w;
     
@@ -158,11 +169,14 @@ float ParticleFilter::createParticleWeights() {
   int beaconColors[6] = {WO_BEACON_YELLOW_PINK, WO_BEACON_PINK_YELLOW, WO_BEACON_PINK_BLUE, WO_BEACON_BLUE_PINK, WO_BEACON_YELLOW_BLUE, WO_BEACON_BLUE_YELLOW };
   int maxPenalty = 70;
   int maxPenaltyPadding = 20;
-  int orientationPenaltyScale = 100;
+  int orientationPenaltyScale = 150;
   int totalWeight = 0;
   for (auto color : beaconColors) {
     
   }
+
+        //cout << i << "|" << object.visionBearing << "|" << Point2D(p.x,p.y).getBearingTo(object.loc, p.t) << "|" << rotationProbability << "|" << orientationPenaltyScale*(1-rotationProbability) << "|" << p.w << endl;
+        // cout << i << "|" << p.x << "|" << object.loc.x << "|" << p.y << "|" << object.loc.y << "|" << object.loc.x << "|" << object.loc.y << "|" << probability << "|" << penalty << "|" << p.w << endl;
 
   float averageWeight = 0.0;
   for(auto& p : particles()) {
@@ -172,20 +186,21 @@ float ParticleFilter::createParticleWeights() {
       if (object.seen && checkBeaconVisibility(object.loc, p)) {
         float meanDistance = sqrt((object.loc.x - p.x) * (object.loc.x - p.x) + (object.loc.y - p.y) * (object.loc.y - p.y));
         float measurementDistance = object.visionDistance;
-        // cout << "mean measurement distance " << meanDistance << " " << measurementDistance << endl;
-        float probability = gaussianProbability(measurementDistance, meanDistance, 20000);
-        float penalty = min((maxPenalty - maxPenaltyPadding),(1-probability)*100); // p=0 -> 50, p=1 -> 0
+        float probability = gaussianProbability(measurementDistance, meanDistance, 10000);
+        float penalty = min(150,(1-probability)*200); // p=0 -> 50, p=1 -> 0
         p.w = p.w - penalty;
-        //cout << i << "|" << p.x << "|" << object.loc.x << "|" << p.y << "|" << object.loc.y << "|" << object.loc.x << "|" << object.loc.y << "|" << probability << "|" << penalty << "|" << p.w << endl;
-        float rotationProbability = gaussianProbability(object.visionBearing, Point2D(p.x,p.y).getBearingTo(object.loc, p.t), 0.01);
+				// cout << i << "|" << p.x << "|" << object.loc.x << "|" << p.y << "|" << object.loc.y << "|" << object.loc.x << "|" << object.loc.y << "|" << probability << "|" << penalty << "|" << p.w << endl;        
+				float rotationProbability = gaussianProbability(object.visionBearing, Point2D(p.x,p.y).getBearingTo(object.loc, p.t), 0.01);
         p.w = p.w - orientationPenaltyScale*(1-rotationProbability);
-        //cout << i << "|" << object.visionBearing << "|" << Point2D(p.x,p.y).getBearingTo(object.loc, p.t) << "|" << rotationProbability << "|" << orientationPenaltyScale*(1-rotationProbability) << "|" << p.w << endl;
       } else if (!(object.seen) && !(checkBeaconVisibility(object.loc, p))) {
         p.w = p.w - min(50, abs((rand_.sampleN(0,1))*35));
-      } else {
+      } else if (!(object.seen) && (checkBeaconVisibility(object.loc, p))){
         p.w = 150;
         break;
-      } 
+      } else if ((object.seen) && !(checkBeaconVisibility(object.loc, p))) {
+				p.w = 50;
+				break;
+			}
     } 
     averageWeight += (p.w / particles().size()); 
   }
@@ -198,12 +213,25 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::vector<float> particleWeights(numParticles);
+	int thresholdWeight = 151;
+	int countImprobable = 0;
+	int totalWeight = 0;
   // Retrieve Weights
   for(int index = 0; index < numParticles; index++) {
     particleWeights[index] = particles()[index].w;
+		if (particleWeights[index] < thresholdWeight) {
+			countImprobable++;
+		}
+		totalWeight = totalWeight + particleWeights[index];
   }
-  
-  float randomParticleProbability = min(0.2,max(0.0, 1.0 - (wFast / wSlow)));
+	cout << totalWeight << endl;
+	float probability;
+	if (countImprobable >= 990)
+		probability = 0.0;
+  else
+		probability = 0.0;
+	
+  // float randomParticleProbability = min(0.1,max(0.0, 1.0 - (wFast / wSlow)));
   // Create sampled particles vector
   int randomNumber;
   srand(time(NULL));
@@ -213,10 +241,10 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
     
     randomNumber = rand() % 100 + 1;
     
-    if(randomNumber <= (int)(randomParticleProbability * 100)){
-      cout<<index<<" prob "<<randomParticleProbability * 100<<" random "<<randomNumber<<endl;
-      resampledParticles[index].x = rand_.sampleN(0, 1500);
-      resampledParticles[index].y = rand_.sampleN(0, 1000);
+    if(randomNumber <= (int)(probability * 100)){
+     // cout<<index<<" prob "<<randomParticleProbability * 100<<" random "<<randomNumber<<endl;
+      resampledParticles[index].x = rand_.sampleN(0, 1000);
+      resampledParticles[index].y = rand_.sampleN(0, 500);
       resampledParticles[index].t = rand_.sampleN(0, M_PI / 2);
       resampledParticles[index].w = 600; 
     }
@@ -237,8 +265,8 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
   float x = mean_.x;
   for(int index = (numParticles-noiseParticles); index < numParticles; index++) {
     Particle particle;    
-    particle.x = rand_.sampleN(x, 25);
-    particle.y = rand_.sampleN(y, 25);
+    particle.x = rand_.sampleN(x, 2);
+    particle.y = rand_.sampleN(y, 2);
     particle.t = rand_.sampleN(0, M_PI / 2);
     particle.w = 600;
   }
@@ -269,17 +297,17 @@ const Pose2D& ParticleFilter::pose() const {
     // Compute the mean pose estimate
     mean_ = Pose2D();
     using T = decltype(mean_.translation);
- /*   for(const auto& p : particles()) {
+    for(const auto& p : particles()) {
       mean_.translation += T(p.x,p.y);
       mean_.rotation += p.t;
     }
     
     if(particles().size() > 0)
-      mean_ /= particles().size();*/
-		Particle clusterCentroid = kMeans();
+      mean_ /= particles().size();
+		/*Particle clusterCentroid = kMeans();
 		mean_.translation = T(clusterCentroid.x, clusterCentroid.y);
 		mean_.rotation = clusterCentroid.t;		
-    cout<<mean_.rotation<<endl;
+    cout<<mean_.rotation<<endl;*/
     dirty_ = false;
   }
   return mean_;
