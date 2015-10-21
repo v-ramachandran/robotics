@@ -55,8 +55,8 @@ void ParticleFilter::propagateToNext() {
 		p.y = disp.translation.x * sin(p.t)+ disp.translation.y * cos(p.t) + p.y;
 
 //    if(!isEqual(disp.translation.x,0) || !isEqual(disp.translation.y,0)){
-      p.x += rand_.sampleN(0, 7);
-      p.y += rand_.sampleN(0, 7);
+      p.x += rand_.sampleN(0, 5);
+      p.y += rand_.sampleN(0, 5);
 //    }
     p.w = p.w;
     
@@ -83,6 +83,8 @@ float ParticleFilter::createParticleWeights() {
   for (auto color : beaconColors) {
     
   }
+
+  float averageWeight = 0.0;
   for(auto& p : particles()) {
     p.w = 600;
     for (int i = 0; i < 6; ++i) {
@@ -105,13 +107,14 @@ float ParticleFilter::createParticleWeights() {
         break;
       } 
     } 
+    averageWeight += (p.w / particles().size()); 
   }
 
-  return 0.0;
+  return averageWeight;
 }
 
 
-void ParticleFilter::resampleByImportance() {
+void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::vector<float> particleWeights(numParticles);
@@ -120,25 +123,38 @@ void ParticleFilter::resampleByImportance() {
     particleWeights[index] = particles()[index].w;
   }
   
+  float randomParticleProbability = max(0.0, 1.0 - (wFast / wSlow));
   // Create sampled particles vector
+  int randomNumber;
+  srand(time(NULL));
   std::vector<Particle> resampledParticles(numParticles);  
   std::piecewise_constant_distribution<> distribution(particleIndices.begin(), particleIndices.end(), particleWeights.begin());
   for(int index = 0; index < (numParticles-noiseParticles); index++) {
-    Particle particle = particles()[distribution(gen)];
-    resampledParticles[index].x = particle.x;
-    resampledParticles[index].y = particle.y;
-    resampledParticles[index].t = particle.t;
-    resampledParticles[index].w = 600;
+    
+    randomNumber = rand() % 100 + 1;
+    
+    if(randomNumber <= (int)(randomParticleProbability * 100)){
+      cout<<"prob "<<randomParticleProbability * 100<<" random "<<randomNumber<<endl;
+      resampledParticles[index].x = rand_.sampleN(0, 1500);
+      resampledParticles[index].y = rand_.sampleN(0, 1000);
+      resampledParticles[index].t = rand_.sampleN(0, M_PI / 2);
+      resampledParticles[index].w = 600; 
+    }
+    else{
+      Particle particle = particles()[distribution(gen)];
+      resampledParticles[index].x = particle.x;
+      resampledParticles[index].y = particle.y;
+      resampledParticles[index].t = particle.t;
+      resampledParticles[index].w = 600;
+    }
   }
 
   // Copy sampled particles back
   for(int index = 0; index < (numParticles-noiseParticles); index++) {
     particles()[index] = resampledParticles[index];
   }
-  
-  Pose2D mean = mean_;
-  float y = mean.y;
-  float x = mean.x;
+  float y = mean_.y;
+  float x = mean_.x;
   for(int index = (numParticles-noiseParticles); index < numParticles; index++) {
     Particle particle;    
     particle.x = rand_.sampleN(x, 25);
@@ -148,14 +164,24 @@ void ParticleFilter::resampleByImportance() {
   }
 }
 
+void ParticleFilter::filter(){
+  
+  propagateToNext();
+  float wAverage = createParticleWeights();
+  wSlow += alphaSlow * (wAverage - wSlow);
+  wFast += alphaFast * (wAverage - wFast);
+  resampleByImportance(wSlow, wFast);
+
+}
 
 void ParticleFilter::processFrame() {
   // Indicate that the cached mean needs to be updated
   dirty_ = true;
 
-  propagateToNext();
-  createParticleWeights();
-  resampleByImportance(); 
+  filter();
+//  propagateToNext();
+//  createParticleWeights();
+//  resampleByImportance(); 
 }
 
 const Pose2D& ParticleFilter::pose() const {

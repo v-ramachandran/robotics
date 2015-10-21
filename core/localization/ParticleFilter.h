@@ -24,12 +24,13 @@ class ParticleFilter {
     inline std::vector<Particle>& particles() {
       return cache_.localization_mem->particles;
     }
+    void filter();
     void propagateToNext();
     bool isEqual(float x , float y);
     float createParticleWeights();
     float gaussianProbability(float x, float mean, float var);
     bool checkBeaconVisibility(Point2D beaconLoc, Particle p );
-    void resampleByImportance();
+    void resampleByImportance(float wSlow, float wFast);
 
   private:
     MemoryCache& cache_;
@@ -41,8 +42,10 @@ class ParticleFilter {
     int yMax = 125;
     int numParticles= 1000;
     int noiseParticles = 1;
-    float alphaFast = 0.9;
-    float alphaSlow = 0.1;
+    float alphaFast = 0.5;
+    float alphaSlow = 0.005;
+    float wSlow = 0.0;
+    float wFast = 0.0;
     std::vector<int> particleIndices;
     mutable Pose2D mean_;
     mutable bool dirty_;
