@@ -22,6 +22,7 @@ void LocalizationModule::specifyMemoryDependency() {
   requiresMemoryBlock("robot_state");
   requiresMemoryBlock("game_state");
   requiresMemoryBlock("vision_odometry");
+  requiresMemoryBlock("vision_joint_angles");
 }
 
 // Boilerplate
@@ -32,6 +33,7 @@ void LocalizationModule::specifyMemoryBlocks() {
   getOrAddMemoryBlock(cache_.robot_state,"robot_state");
   getOrAddMemoryBlock(cache_.game_state,"game_state");
   getOrAddMemoryBlock(cache_.odometry,"vision_odometry");
+  getOrAddMemoryBlock(cache_.joint,"vision_joint_angles");
 }
 
 

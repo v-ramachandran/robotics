@@ -2,6 +2,7 @@
 #include <memory/FrameInfoBlock.h>
 #include <memory/OdometryBlock.h>
 #include <memory/WorldObjectBlock.h>
+#include <memory/JointBlock.h>
 
 
 ParticleFilter::ParticleFilter(MemoryCache& cache, TextLogger*& tlogger) 
@@ -21,15 +22,19 @@ void ParticleFilter::init(Point2D loc, float orientation) {
   for(auto& p : particles()) {
  //   p.x = x;
  //   p.y = y;
-    p.x = rand_.sampleN(0, 750);
-    p.y = rand_.sampleN(0, 350);
-    p.t = rand_.sampleN(0, M_PI / 2);
+    p.x = rand_.sampleN(0, 1000);
+    p.y = rand_.sampleN(0, 750);
+    p.t = rand_.sampleN(0, M_PI);
     p.w = rand_.sampleU();
  //   y++;
  //   if (y > yMax) {
  //     x++;
  //     y = yMin;
  //   }
+  }
+  
+  for (int iteration = 0; iteration < historySize; iteration++) {
+    qualityHistory.push(600000);
   }
 }
 
@@ -133,7 +138,7 @@ void ParticleFilter::propagateToNext() {
 	
   const auto& disp = cache_.odometry->displacement;
 	log(41, "Updating particles from odometry: %2.f,%2.f @ %2.8f", disp.translation.x, disp.translation.y, disp.rotation * RAD_T_DEG);
-  // printf("Updating particles from odometry: %2.f,%2.f @ %2.8f \n", disp.translation.x, disp.translation.y, disp.rotation);
+ //printf("Updating particles from odometry: %2.f,%2.f @ %2.8f \n", disp.translation.x, disp.translation.y, disp.rotation);
 	for(auto& p : particles()) { 
 		float meanT = disp.rotation + p.t;
 		p.t = disp.rotation + p.t;
@@ -160,9 +165,14 @@ float ParticleFilter::gaussianProbability(float x, float mean, float var){
 }
 
 bool ParticleFilter::checkBeaconVisibility(Point2D beaconLoc, Particle p ){
-	float angle;
+	float angle, pan;
+  pan = 0.0;
+  if (cache_.joint != NULL) {
+    pan = cache_.joint->getJointValue(HeadPan);
+  }
   angle = Point2D(p.x,p.y).getBearingTo(beaconLoc, p.t);
-	return ( angle <= M_PI/6 && angle >= -1 * M_PI/6); 	
+  return ( abs(angle-pan) <= M_PI/6.0);
+	// return ( angle <= M_PI/6 && angle >= -1 * M_PI/6); 	
 }
 
 float ParticleFilter::createParticleWeights() {
@@ -186,7 +196,14 @@ float ParticleFilter::createParticleWeights() {
       if (object.seen && checkBeaconVisibility(object.loc, p)) {
         float meanDistance = sqrt((object.loc.x - p.x) * (object.loc.x - p.x) + (object.loc.y - p.y) * (object.loc.y - p.y));
         float measurementDistance = object.visionDistance;
-        float probability = gaussianProbability(measurementDistance, meanDistance, 10000);
+        int distanceVariance = 20000;
+        if (measurementDistance > 1000 && measurementDistance <= 1750) {
+          distanceVariance = 20000;
+        } else if (measurementDistance > 1750) {
+          distanceVariance = 20000;
+        }
+        
+        float probability = gaussianProbability(measurementDistance, meanDistance, distanceVariance);
         float penalty = min(150,(1-probability)*200); // p=0 -> 50, p=1 -> 0
         p.w = p.w - penalty;
 				// cout << i << "|" << p.x << "|" << object.loc.x << "|" << p.y << "|" << object.loc.y << "|" << object.loc.x << "|" << object.loc.y << "|" << probability << "|" << penalty << "|" << p.w << endl;        
@@ -208,7 +225,6 @@ float ParticleFilter::createParticleWeights() {
   return averageWeight;
 }
 
-
 void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -224,14 +240,32 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
 		}
 		totalWeight = totalWeight + particleWeights[index];
   }
-	cout << totalWeight << endl;
-	float probability;
-	if (countImprobable >= 990)
-		probability = 0.0;
-  else
-		probability = 0.0;
+
+  int oldestScore = qualityHistory.front();
+  qualityHistory.pop();
+  qualityHistory.push(totalWeight);
+  if (oldestScore < qualityThreshold) {
+    poorQualityCount--;
+  } 
+  if (totalWeight < qualityThreshold) {
+    poorQualityCount++;
+  }
+  
+  if (addedNoise) {
+    if (currentPeriod >= cooldownPeriod) {
+      addedNoise = false;
+      currentPeriod = 0;
+    } else {
+      currentPeriod++;
+    }
+  }
+
+	float probability = 0.0;
+  if (poorQualityCount >= poorQualityThreshold && (!addedNoise)) {
+    probability = 0.75;
+    addedNoise = true;
+  } 
 	
-  // float randomParticleProbability = min(0.1,max(0.0, 1.0 - (wFast / wSlow)));
   // Create sampled particles vector
   int randomNumber;
   srand(time(NULL));
@@ -239,10 +273,8 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
   std::piecewise_constant_distribution<> distribution(particleIndices.begin(), particleIndices.end(), particleWeights.begin());
   for(int index = 0; index < (numParticles-noiseParticles); index++) {
     
-    randomNumber = rand() % 100 + 1;
-    
-    if(randomNumber <= (int)(probability * 100)){
-     // cout<<index<<" prob "<<randomParticleProbability * 100<<" random "<<randomNumber<<endl;
+    randomNumber = (rand() % numParticles) + 1;
+    if(randomNumber <= (int)(100 * probability)){
       resampledParticles[index].x = rand_.sampleN(0, 1000);
       resampledParticles[index].y = rand_.sampleN(0, 500);
       resampledParticles[index].t = rand_.sampleN(0, M_PI / 2);
@@ -257,6 +289,15 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
     }
   }
 
+
+  for(int i = 0; i < noiseParticles; ++i){
+      int index = rand_.sampleU(0, numParticles-1);
+      resampledParticles[index].x = rand_.sampleN(0, 1000);
+      resampledParticles[index].y = rand_.sampleN(0, 500);
+      resampledParticles[index].t = rand_.sampleN(0, M_PI / 2);
+      resampledParticles[index].w = 600; 
+
+  } 
   // Copy sampled particles back
   for(int index = 0; index < (numParticles-noiseParticles); index++) {
     particles()[index] = resampledParticles[index];
@@ -269,7 +310,7 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
     particle.y = rand_.sampleN(y, 2);
     particle.t = rand_.sampleN(0, M_PI / 2);
     particle.w = 600;
-  }
+  } 
 }
 
 void ParticleFilter::filter(){
