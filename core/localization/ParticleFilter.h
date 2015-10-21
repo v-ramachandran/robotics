@@ -4,6 +4,7 @@
 #include <numeric>
 #include <random>
 #include <cmath>
+#include <map>
 #include <math/Pose2D.h>
 #include <common/Random.h>
 #include <memory/MemoryCache.h>
@@ -31,6 +32,9 @@ class ParticleFilter {
     float gaussianProbability(float x, float mean, float var);
     bool checkBeaconVisibility(Point2D beaconLoc, Particle p );
     void resampleByImportance(float wSlow, float wFast);
+    void resampleByImportance();
+		const float distance(Particle X, Particle Y) const;
+		const Particle kMeans() const;
 
   private:
     MemoryCache& cache_;
