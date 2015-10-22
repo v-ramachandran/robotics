@@ -31,12 +31,12 @@ class Playing(StateMachine):
       center = geometry.Point2D(0,0)
       bearing = currentpos.getBearingTo(center, mypos.orientation)
       distance = currentpos.getDistanceTo(center)
-      print "arrive distance ", distance
-      if distance <= 30:
+      #print "arrive distance ", distance
+      if distance <= 10:
         velocity = 0.0
         bearing = 0
       else:
-        velocity = 0.35
+        velocity = 0.45
       commands.setWalkVelocity(velocity, 0, (bearing / (math.pi / 2)))
       
       if (core.joint_values[core.HeadPan] >= ((math.pi / 6) - 0.05)):
@@ -52,7 +52,7 @@ class Playing(StateMachine):
       if velocity == 0.0:
         commands.setHeadPan(0, target_time = 0.5)
         commands.setWalkVelocity(0,0,0)
-        self.postSignal("evaluate")
+        self.postSignal("localize")
 #      else:
         #commands.setHeadPan(self.toPan, target_time = 0.5)
 
@@ -64,9 +64,9 @@ class Playing(StateMachine):
         center = geometry.Point2D(0,0)
         bearing = currentpos.getBearingTo(center, mypos.orientation)
         distance = currentpos.getDistanceTo(center)
-        print "arrive distance ",distance
-        if distance <= 30:
-          self.postSignal("evaluate")
+        #print "arrive distance ",distance
+        if distance <= 10:
+          self.postSignal("localize")
         else:
           self.postSignal("localize")        
 
@@ -164,21 +164,24 @@ class Playing(StateMachine):
 #        if self.getTime() >= self.threshold:
 #          self.threshold = self.thresholdUnits + self.threshold
         new_value = self.toPan + self.toTurn
-        max_cap = max(new_value, (-1)*(math.pi/64))
-        min_cap = min(max_cap, math.pi / 64)
+        max_cap = max(new_value, (-1)*(math.pi/2))
+        min_cap = min(max_cap, math.pi / 2)
         self.toPan = min_cap
         commands.setHeadPan(self.toPan, target_time = 0.5)
-      else:
+           
+
+    
+      if self.getTime() > 5.0:
         mypos = mem_objects.world_objects[memory.robot_state.WO_SELF]
         currentpos = geometry.Point2D(mypos.loc.x, mypos.loc.y)
         center = geometry.Point2D(0,0)
         bearing = currentpos.getBearingTo(center, mypos.orientation)
         distance = currentpos.getDistanceTo(center)
         print "evaluate distance", distance
-#        if distance <= 50:
-#          self.postSignal("finish")
-#        else:
-#          self.postSignal("center")
+        if distance <= 30:
+          self.postSignal("center")
+        else:
+          self.postSignal("center")
 
 
       if self.getTime() > 10.0:
@@ -194,8 +197,8 @@ class Playing(StateMachine):
         memory.speech.say("done scanning")
         commands.setHeadPan(0, target_time = 0.5)
         print "evaluate distance",distance
-        if distance <= 50:
-          self.postSignal("finish")
+        if distance <= 30:
+          self.postSignal("center")
         else:
           self.postSignal("center")
 
@@ -222,7 +225,7 @@ class Playing(StateMachine):
       self.toPan = min_cap
       commands.setHeadPan(self.toPan, target_time = 0.75)
 
-      if self.getTime() > 15.0:
+      if self.getTime() >= 15.0:
         self.toTurn = math.pi / 96
         self.toPan = 0
         self.threshold = 0
@@ -233,10 +236,10 @@ class Playing(StateMachine):
         bearing = currentpos.getBearingTo(center, mypos.orientation)
         distance = currentpos.getDistanceTo(center)
         memory.speech.say("done scanning")
-        print "scan distance ",distance
+        # print "scan distance ",distance
         commands.setHeadPan(0, target_time = 0.5)
-        if distance <= 50:
-          self.postSignal("evaluate")
+        if distance <= 10:
+          self.postSignal("center")
         else:
           self.postSignal("center")
 
@@ -258,22 +261,22 @@ class Playing(StateMachine):
     sit = pose.Sit()
     off = self.Off()
 
-#    self.trans(stand, C, initialize)
-#    self.trans(initialize, C, headscan)
+    self.trans(stand, C, initialize)
+    self.trans(initialize, C, headscan)
 #    self.trans(headscan, C, off)
 
-    self.trans(initialize, C, turn)
-    self.trans(turn, S("center"), arrive_at_center)
+    self.trans(initialize, C, headscan)
+#    self.trans(turn, S("center"), arrive_at_center)
     self.trans(headscan, S("center"), arrive_at_center)
     self.trans(headscan, S("evaluate"), evaluate)
-    self.trans(arrive_at_center, S("turn"), turn)
+#    self.trans(arrive_at_center, S("turn"), turn)
     self.trans(arrive_at_center, S("evaluate"), evaluate)
     self.trans(evaluate, S("center"), arrive_at_center)
-    self.trans(evaluate, S("finish"), stand_to_complete)
+#    self.trans(evaluate, S("finish"), stand_to_complete)
     self.trans(arrive_at_center, S("localize"), headscan)
-    self.trans(turn, S("localize"), headscan)
-    self.trans(headscan, S("finish"), stand_to_complete)
-    self.trans(turn, S("finish"), stand_to_complete)
+#    self.trans(turn, S("localize"), headscan)
+#    self.trans(headscan, S("finish"), stand_to_complete)
+#    self.trans(turn, S("finish"), stand_to_complete)
     self.trans(stand_to_complete, C, off)
 
  #   self.trans(self.Stand(), C, self.Walk(), T(5.0), self.Stand(), C, sit, C, off)
