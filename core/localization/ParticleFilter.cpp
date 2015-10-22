@@ -49,9 +49,9 @@ const Particle ParticleFilter::kMeans() const {
   for(int i=0; i<4; ++i){
   
     int index = rand() % particles().size();
-    clusterCenters[i].x = particles()[i].x;
-    clusterCenters[i].y = particles()[i].y;
-		clusterCenters[i].t = particles()[i].t;
+    clusterCenters[i].x = particles()[index].x;
+    clusterCenters[i].y = particles()[index].y;
+		clusterCenters[i].t = particles()[index].t;
   }
   map<int, vector<int>> clusters;
 	int count = 20;
@@ -93,27 +93,23 @@ const Particle ParticleFilter::kMeans() const {
   }
 
 	int maxClusterSize = 0;
-	int secondMaxClusterSize = 0;
 	int maxClusterIndex = -1;
-	int secondMaxClusterIndex = -1;
+
 	for(int i = 0; i< 4; ++i){
 		if(clusters[i].size() > maxClusterSize){
 			maxClusterSize = clusters[i].size();
 			maxClusterIndex = i;
 		}
-		if(clusters[i].size() > secondMaxClusterSize && clusters[i].size() != maxClusterSize){
-			secondMaxClusterSize = clusters[i].size();
-			secondMaxClusterIndex = i;
-		}
+	
 	}
-	Particle centroid;
+/*	Particle centroid;
 	centroid.x = (clusterCenters[maxClusterIndex].x + clusterCenters[secondMaxClusterIndex].x) / 2;
 	centroid.y = (clusterCenters[maxClusterIndex].y + clusterCenters[secondMaxClusterIndex].y) / 2;
 	centroid.t = (clusterCenters[maxClusterIndex].t + clusterCenters[secondMaxClusterIndex].t) / 2;
-	centroid.w = 1;
-	return centroid;
+	centroid.w = 1;*/
+//	return clusterCenters[maxClusterIndex];
 
-/*float sumX=0;
+float sumX=0;
 float sumY=0;
 float sumT=0;
 for(int i=0; i<4; ++i){
@@ -126,7 +122,7 @@ centroid.x = sumX / 4;
 centroid.y = sumY / 4;
 centroid.t = sumT / 4;
 centroid.w = 1;
-return centroid;*/
+return centroid;
 }
 
 bool ParticleFilter::isEqual(float x , float y){
@@ -338,17 +334,17 @@ const Pose2D& ParticleFilter::pose() const {
     // Compute the mean pose estimate
     mean_ = Pose2D();
     using T = decltype(mean_.translation);
-    for(const auto& p : particles()) {
+ /*   for(const auto& p : particles()) {
       mean_.translation += T(p.x,p.y);
       mean_.rotation += p.t;
     }
     
     if(particles().size() > 0)
-      mean_ /= particles().size();
-		/*Particle clusterCentroid = kMeans();
+      mean_ /= particles().size();*/
+		Particle clusterCentroid = kMeans();
 		mean_.translation = T(clusterCentroid.x, clusterCentroid.y);
 		mean_.rotation = clusterCentroid.t;		
-    cout<<mean_.rotation<<endl;*/
+    cout<<mean_.rotation<<endl;
     dirty_ = false;
   }
   return mean_;
