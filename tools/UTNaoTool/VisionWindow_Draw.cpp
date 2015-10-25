@@ -71,8 +71,8 @@ void VisionWindow::updateBigImage() {
   if (currentBigImageType_ == SEG_IMAGE){
     drawSegmentedImage(bigImage);
     if (overlayCheck->isChecked()) {
-      drawBall(bigImage);
       drawBallCands(bigImage);
+      drawBall(bigImage);
       drawBeacons(bigImage);
     }
   }
@@ -97,17 +97,20 @@ void VisionWindow::redrawImages(ImageWidget* rawImage, ImageWidget* segImage, Im
 
   // if overlay is on, then draw objects on the raw and seg image as well
   if (overlayCheck->isChecked()) {
-    drawBall(rawImage);
+
     drawBallCands(rawImage);
+    drawBall(rawImage);
+    drawGoalCands(rawImage);
     drawBeacons(rawImage);
 
-    drawBall(segImage);
     drawBallCands(segImage);
+    drawBall(segImage);
+    drawGoalCands(segImage);
     drawBeacons(segImage);
   }
 
-  drawBall(verticalBlobImage);
   drawBallCands(verticalBlobImage);
+  drawBall(verticalBlobImage);
 
   transformedImage->fill(0);
 
@@ -220,7 +223,7 @@ void VisionWindow::drawSegmentedImage(ImageWidget *image) {
 
 void VisionWindow::drawBall(ImageWidget* image) {
   QPainter painter(image->getImage());
-  painter.setPen(QPen(QColor(0, 255, 127), 3));
+  painter.setPen(QPen(QColor(255, 0, 127), 1));
   if(IS_RUNNING_CORE) {
     ImageProcessor* processor = getImageProcessor(image);
 
@@ -233,16 +236,30 @@ void VisionWindow::drawBall(ImageWidget* image) {
       (int)best->centerY - r - 1, 2 * r + 2, 2 * r + 2);
   }
   else if (world_object_block_ != NULL) {
+ 
     WorldObject* ball = &world_object_block_->objects_[WO_BALL];
-    if(!ball->seen) return;
+    if(!ball->seen) return; 
     if( (ball->fromTopCamera && _widgetAssignments[image] == IMAGE_BOTTOM) ||
-        (!ball->fromTopCamera && _widgetAssignments[image] == IMAGE_TOP) ) return;
+        (!ball->fromTopCamera && _widgetAssignments[image] == IMAGE_TOP) ) return;    
     int radius = ball->radius;
     painter.drawEllipse(ball->imageCenterX - radius, ball->imageCenterY - radius, radius * 2, radius * 2);
   }
 }
 
 void VisionWindow::drawBallCands(ImageWidget* image) {
+  if(IS_RUNNING_CORE) {
+    QPainter painter(image->getImage());
+    painter.setPen(QPen(QColor(0, 255, 127), 1));
+    ImageProcessor* processor = getImageProcessor(image);
+
+    std::vector<struct BallCandidate*> bests = processor->getBallCandidates();
+    for(std::vector<struct BallCandidate*>::iterator best = bests.begin(); best != bests.end(); ++best){
+      int r = (*best)->radius;
+      painter.drawEllipse(
+        (int)(*best)->centerX - r - 1,
+        (int)(*best)->centerY - r - 1, 2 * r + 2, 2 * r + 2);
+    }
+  }
 }
 
 void VisionWindow::drawHorizonLine(ImageWidget *image) {
@@ -263,6 +280,53 @@ void VisionWindow::drawHorizonLine(ImageWidget *image) {
       painter.drawLine(x1, y1, x2, y2);
     }
   }
+}
+
+void VisionWindow::drawGoalCands(ImageWidget* image) {
+  ImageProcessor* processor = getImageProcessor(image);
+  QPainter painter(image->getImage());
+  if(IS_RUNNING_CORE) {
+    painter.setPen(QPen(QColor(0, 255, 127), 2));
+    vector<struct TreeNode*> bests = processor->getGoalCandidates();
+    
+    for(std::vector<struct TreeNode*>::iterator node = bests.begin(); node != bests.end(); ++node){
+      QRect rect;
+      QPoint topleft = QPoint((*node)->topleft->x, (*node)->topleft->y);
+      QPoint bottomright = QPoint((*node)->bottomright->x, (*node)->bottomright->y);
+      rect = QRect(topleft, bottomright);
+      painter.drawRect(rect);
+    }
+    
+    struct TreeNode *node = processor->getBestGoalCandidate();
+    if(!node){
+      return;
+    }
+
+    painter.setPen(QPen(QColor(255, 0, 127), 2));
+    QRect rect;
+   //   std::cout<<best->topleft->x<<" "<<(*node)->topleft->y<<" "<<(*node)->bottomright->x<<" "<<(*node)->bottomright->y<<endl;
+    QPoint topleft = QPoint((node)->topleft->x, (node)->topleft->y);
+    QPoint bottomright = QPoint((node)->bottomright->x, (node)->bottomright->y);
+    rect = QRect(topleft, bottomright);
+    painter.drawRect(rect);
+  }
+  else if (world_object_block_ != NULL) {
+ 
+    struct TreeNode *node = processor->getBestGoalCandidate();
+    if(!node){
+      return;
+    }
+
+    painter.setPen(QPen(QColor(255, 0, 127), 2));
+    QRect rect;
+   //   std::cout<<best->topleft->x<<" "<<(*node)->topleft->y<<" "<<(*node)->bottomright->x<<" "<<(*node)->bottomright->y<<endl;
+    QPoint topleft = QPoint((node)->topleft->x, (node)->topleft->y);
+    QPoint bottomright = QPoint((node)->bottomright->x, (node)->bottomright->y);
+    rect = QRect(topleft, bottomright);
+    painter.drawRect(rect);
+  }
+
+
 }
 
 void VisionWindow::drawWorldObject(ImageWidget* image, QColor color, int worldObjectID) {

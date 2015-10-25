@@ -1,25 +1,260 @@
-import memory, pose, commands, cfgstiff
+import memory, pose, commands, cfgstiff, core, mem_objects, math
 from task import Task
+from memory import *
 from state_machine import *
 
 class Playing(StateMachine):
+
+  class Ping(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      goal = world_objects.getObjPtr(core.WO_OWN_GOAL)
+      beacon1 =world_objects.getObjPtr(core.WO_BEACON_YELLOW_PINK)
+      beacon2 =world_objects.getObjPtr(core.WO_BEACON_PINK_YELLOW)
+      if ball.seen:
+        print "ball", ball.imageCenterY, ball.imageCenterX, ball.visionDistance
+      if goal.seen:
+        print "goal", goal.imageCenterY, goal.imageCenterX, goal.visionDistance
+      if beacon1.seen:
+        print "yellow pink beacon", beacon1.imageCenterY, beacon1.imageCenterX, beacon1.visionDistance
+      if beacon2.seen:
+        print "pink yellow beacon", beacon2.imageCenterY, beacon2.imageCenterX, beacon2.visionDistance
+  
   class Stand(Node):
     def run(self):
       commands.stand()
       if self.getTime() > 3.0:
         self.finish()
+  
+  class OrientBallX(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      print "DISTANCE", ball.visionDistance
+      if ball.seen:
+        if (ball.visionDistance > 125):
+          commands.setWalkVelocity(.25,0,(ball.visionBearing / (math.pi / 2)))
+        else:
+          commands.setWalkVelocity(0, 0, 0)
+          self.postSignal("OrientY")
+  
+  class OrientBallY(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        y_velocity = 0
+        if ball.imageCenterX > 129:
+          y_velocity = -0.25
+        elif ball.imageCenterX < 123:
+          y_velocity = 0.25
+        
+        if y_velocity != 0:
+          commands.setWalkVelocity(0, y_velocity, 0)
+        else:
+          commands.setWalkVelocity(0,0,0)
+          self.postSignal("Kick")
+
+  class OrientBallXY(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        y_velocity = 0
+        if ball.imageCenterX > 129:
+          y_velocity = -0.1
+        elif ball.imageCenterX < 123:
+          y_velocity = 0.1
+
+        x_velocity = 0
+        if ball.imageCenterY < 206:
+          x_velocity = 0.1
+
+        if (x_velocity == 0) and (y_velocity == 0):
+          commands.setWalkVelocity(0,0,0)
+          self.postSignal("Kick")
+        else:
+          commands.setWalkVelocity(x_velocity, y_velocity, 0)
+      else:
+        commands.setWalkVelocity(0,0,0)
+        self.postSignal("PreSearchForBall")
+
+  class SearchForBall(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        beacon_pink_yellow = world_objects.getObjPtr(core.WO_BEACON_PINK_YELLOW)
+        beacon_yellow_pink = world_objects.getObjPtr(core.WO_BEACON_YELLOW_PINK)
+        
+        if beacon_pink_yellow.seen and beacon_yellow_pink.seen:
+          if (beacon_pink_yellow.imageCenterX < ball.imageCenterX and beacon_pink_yellow.visionDistance <= ball.visionDistance) and (beacon_yellow_pink.imageCenterX > ball.imageCenterX and beacon_yellow_pink.visionDistance <= ball.visionDistance):
+            commands.stand()
+            memory.speech.say("take ball out of goal")
+          else:
+            commands.setWalkVelocity(0,0,0)
+            memory.speech.say("walking to ball")
+            self.postSignal("BallWalk")
+        elif beacon_pink_yellow.seen:
+          if beacon_pink_yellow.imageCenterX < ball.imageCenterX and beacon_pink_yellow.visionDistance <= ball.visionDistance:
+            commands.stand()
+            memory.speech.say("take ball out of goal")
+          else:
+            commands.setWalkVelocity(0,0,0)
+            memory.speech.say("walking to ball")
+            self.postSignal("BallWalk")
+        elif beacon_yellow_pink.seen:
+          if beacon_yellow_pink.imageCenterX > ball.imageCenterX and beacon_yellow_pink.visionDistance <= ball.visionDistance:
+            commands.stand()
+            memory.speech.say("take ball out of goal")
+          else:
+            commands.setWalkVelocity(0,0,0)
+            memory.speech.say("walking to ball")
+            self.postSignal("BallWalk")
+        else:
+          commands.setWalkVelocity(0,0,0)
+          memory.speech.say("walking to ball")
+          self.postSignal("BallWalk")
+      else:
+        memory.speech.say("searching for ball")
+        commands.setWalkVelocity(0,0,0.25)
 
   class Kick(Node):
     def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        print ball.imageCenterX, ball.imageCenterY, ball.visionDistance
       if self.getFrames() <= 3:
         memory.walk_request.noWalk()
         memory.kick_request.setFwdKick()
+        commands.setStiffness(cfgstiff.One)
       if self.getFrames() > 10 and not memory.kick_request.kick_running_:
         self.finish()
+
+  class SignalKick(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        print ball.imageCenterX, ball.imageCenterY, ball.visionDistance
+      if self.getFrames() <= 3:
+        memory.walk_request.noWalk()
+        memory.kick_request.setFwdKick()
+        commands.setStiffness(cfgstiff.One)
+      if self.getFrames() > 10 and not memory.kick_request.kick_running_:
+        self.postSignal("InGoal")
 
   class Walk(Node):
     def run(self):
       commands.setWalkVelocity(0.5,0,0)
+
+  class Ballwalk(Node):
+    def __init__(self, x_set, threshold, Kp, Kd, Ki):
+      self.unseen = 0
+      self.error_x = 0
+      self.derivative_x = 0
+      self.integral_x = 0
+      self.x_set = x_set
+      self.threshold = threshold
+      self.Kp = Kp
+      self.Kd = Kd
+      self.Ki = Ki
+      super(self.__class__, self).__init__()
+
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+        self.unseen = 0
+        memory.speech.say("ball seen")
+        print ball.visionDistance
+        new_error_x = max(0, ball.visionDistance * math.cos(ball.visionBearing) - self.x_set)
+        self.derivative_x = (new_error_x - self.error_x)
+        self.integral_x = self.integral_x + new_error_x 
+        self.error_x = new_error_x
+        
+        velocity_x =  self.Kp * self.error_x + self.Kd * self.derivative_x + self.Ki * self.integral_x
+        velocity_x = velocity_x / 1000 
+        velocity_x = min(velocity_x, 0.6)
+        velocity_x = max(0.23, velocity_x)
+        
+        commands.setWalkVelocity(velocity_x,0,(ball.visionBearing / (math.pi / 2)))
+        if self.error_x <= self.threshold:
+          self.error_x = 0
+          self.derivative_x = 0
+          self.integral_x = 0
+          commands.setWalkVelocity(0,0,0)
+          self.postSignal("GoalTurn")
+      else:
+        print "HERE"
+        self.unseen = self.unseen + 1
+        if (self.unseen > 15):
+          self.unseen = 0
+          self.error_x = 0
+          self.derivative_x = 0
+          self.integral_x = 0
+          commands.setWalkVelocity(0,0,0)
+          self.postSignal("PreFindBall")
+
+  class Goalturn(Node):
+    def __init__(self):
+      super(self.__class__, self).__init__()
+  
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      goal = world_objects.getObjPtr(core.WO_OWN_GOAL)
+      beacon_pink_yellow = world_objects.getObjPtr(core.WO_BEACON_PINK_YELLOW)
+      beacon_yellow_pink = world_objects.getObjPtr(core.WO_BEACON_YELLOW_PINK)
+      error = 20
+      print beacon_pink_yellow.seen,beacon_yellow_pink.seen, goal.seen, goal.visionBearing, beacon_pink_yellow.visionBearing, beacon_yellow_pink.visionBearing
+      if (beacon_pink_yellow.seen and beacon_yellow_pink.seen) or (goal.seen and goal.visionBearing <= 0.1 and goal.visionBearing >= -0.1):
+        commands.setWalkVelocity(0,0,0)
+        self.postSignal("Dribble")
+      elif beacon_pink_yellow.seen and beacon_pink_yellow.visionDistance <= 300 and beacon_pink_yellow.visionBearing >= 0.2:
+        commands.setWalkVelocity(0,0,0)
+        self.postSignal("Dribble")
+      elif beacon_yellow_pink.seen and beacon_yellow_pink.visionDistance <= 300 and beacon_yellow_pink.visionBearing <= -0.2:
+        commands.setWalkVelocity(0,0,0)
+        self.postSignal("Dribble")
+      else:
+
+        scale = 1
+        if beacon_yellow_pink.seen:
+          scale = -1
+        if ball.visionDistance > 220:
+          commands.setWalkVelocity(0.3,0,(ball.visionBearing / (math.pi / 2)))
+        else: 
+          commands.setWalkVelocity(0,scale*0.4, (ball.visionBearing / (math.pi / 2)))
+
+  class Dribble(Node):
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      if ball.seen:
+
+        beacon_pink_yellow = world_objects.getObjPtr(core.WO_BEACON_PINK_YELLOW)
+        beacon_yellow_pink = world_objects.getObjPtr(core.WO_BEACON_YELLOW_PINK)
+        goal = world_objects.getObjPtr(core.WO_OWN_GOAL)
+
+        if beacon_pink_yellow.seen and beacon_yellow_pink.seen:
+          if ((beacon_pink_yellow.visionDistance < 1500) and ((beacon_pink_yellow.visionDistance - ball.visionDistance) < 1200) and ((beacon_pink_yellow.visionDistance - ball.visionDistance) >= 0)) or ((beacon_yellow_pink.visionDistance < 1500) and  ((beacon_yellow_pink.visionDistance - ball.visionDistance) < 1200) and ((beacon_yellow_pink.visionDistance - ball.visionDistance) >= 0)):
+            print "************** kicking ********************", beacon_pink_yellow.visionDistance, beacon_yellow_pink.visionDistance, ball.visionDistance
+            commands.setWalkVelocity(0,0,0)
+            self.postSignal("OrientX")
+          else:
+            commands.setWalkVelocity(0.35, 0, (ball.visionBearing / (math.pi / 2)))
+        elif beacon_pink_yellow.seen:
+          if beacon_pink_yellow.visionDistance <= 300 and ((beacon_yellow_pink.visionDistance - ball.visionDistance) >= 0):
+            commands.setWalkVelocity(0,0,0)
+            self.postSignal("OrientX")
+          else:
+            commands.setWalkVelocity(0.35, 0, (ball.visionBearing / (math.pi / 2)))                  
+        elif beacon_yellow_pink.seen: 
+          if beacon_yellow_pink.visionDistance <= 300 and ((beacon_yellow_pink.visionDistance - ball.visionDistance) >= 0):
+            commands.setWalkVelocity(0,0,0)
+            self.postSignal("OrientX")
+          else:
+            commands.setWalkVelocity(0.35, 0, (ball.visionBearing / (math.pi / 2)))          
+        elif goal.seen:
+          print "goal distance", goal.visionDistance
+          if (goal.visionDistance - ball.visionDistance > 1500):
+            commands.setWalkVelocity(0.35, 0, (ball.visionBearing / (math.pi / 2))) 
+        else:
+          commands.setWalkVelocity(0,0,0)
+          self.postSignal("GoalTurn")
 
   class Off(Node):
     def run(self):
@@ -27,6 +262,47 @@ class Playing(StateMachine):
       if self.getTime() > 2.0:
         memory.speech.say("turned off stiffness")
         self.finish()
-
+  
+  class PreSearchForBall(Node):
+    def run(self):
+      commands.stand()
+      if self.getTime() > 2.0:
+        self.postSignal("FindBall")
+  
   def setup(self):
-    self.trans(self.Stand(), C, self.Kick(), C, self.Stand(), C, pose.Sit(), C, self.Off())
+  #  
+    kick = self.SignalKick()
+    stand = self.Stand()
+    goal_turn = self.Goalturn()
+    find_ball = self.SearchForBall()
+    ballwalk = self.Ballwalk(120, 20, 0.9, 0.2, 0.00075)
+    orient = self.OrientBallXY()
+    orient_x = self.OrientBallX()
+    orient_y = self.OrientBallY()
+    dribble = self.Dribble()
+    sit = pose.Sit()
+    pre_search_for_ball = self.PreSearchForBall()
+    
+    self.trans(stand, C, pre_search_for_ball)
+    self.trans(pre_search_for_ball, S("FindBall"), find_ball)
+    self.trans(find_ball, S("BallWalk"), ballwalk)
+    self.trans(ballwalk, S("GoalTurn"), goal_turn)
+    self.trans(ballwalk, S("PreFindBall"), pre_search_for_ball)
+    self.trans(goal_turn, S("Dribble"), dribble)
+    self.trans(orient_x, S("OrientY"), orient_y)
+    self.trans(orient_y, S("Kick"), kick)
+    self.trans(kick, S("NotInGoal"), stand)
+    self.trans(kick, S("InGoal"), stand) 
+    self.trans(dribble, S("PreFindBall"), pre_search_for_ball)
+    self.trans(dribble, S("GoalTurn"), goal_turn)
+    self.trans(dribble, S("OrientX"), orient_x)
+    self.setFinish(None)    
+
+  #  self.trans(self.Stand(), C, self.Kick(), C,  self.Stand(), C, pose.Sit(), C, self.Off())
+  #  self.trans(self.Stand(), C, self.Ping(), T(45.0), self.Off())
+  #  self.trans(self.Stand(), C, self.OrientBallY(), C, self.Kick(), C, pose.Sit(), C, self.Off())
+  # self.trans(self.Stand(), C, self.Goalturn(), C, self.Off())
+  # self.trans(self.Stand(), C, self.Ballwalk(350), C, self.Goalturn(), C, self.Ballwalk(110), C, self.Kick(), C, self.Off())
+  # self.trans(self.Stand(), C, self.Ballwalk(350, 20, 1.1, 0.1, 0.00075), C, self.Off())
+  # self.trans(self.Stand(), C, self.SearchForBall(), C, self.Ballwalk(120, 20, 0.9, 0.2, 0.00075), C, self.Goalturn(), C, self.OrientBallXY(), C, self.Kick(), C, pose.Sit(), C, self.Off())
+   #self.trans(self.Stand(), C, self.Ballwalk(200), C, self.Stand(), C, self.Kick(), C, pose.Sit(), C, self.Off())
