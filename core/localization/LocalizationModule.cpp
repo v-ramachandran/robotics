@@ -8,6 +8,8 @@
 
 // Boilerplate
 LocalizationModule::LocalizationModule() : tlogger_(textlogger), pfilter_(new ParticleFilter(cache_, tlogger_)) {
+  ballFilter = new ExtendedBallFilter();
+  timesUnseen = 0;
 }
 
 LocalizationModule::~LocalizationModule() {
@@ -57,7 +59,12 @@ void LocalizationModule::initFromMemory() {
 void LocalizationModule::initFromWorld() {
   reInit();
   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
+<<<<<<< HEAD
   pfilter_->init(self.loc, self.orientation);
+=======
+  cache_.localization_mem->player = self.loc;
+  printf("%d %d\n",self.loc.x, self.loc.y);
+>>>>>>> 22770f17b00d29fb9d632fe1ce96a4780bbdaf2b
 }
 
 // Reinitialize from scratch
@@ -90,6 +97,7 @@ void LocalizationModule::processFrame() {
     
   //TODO: modify this block to use your Kalman filter implementation
   if(ball.seen) {
+    timesUnseen = 0;
     // Compute the relative position of the ball from vision readings
     auto relBall = Point2D::getPointFromPolar(ball.visionDistance, ball.visionBearing);
 
@@ -97,10 +105,20 @@ void LocalizationModule::processFrame() {
     auto globalBall = relBall.relativeToGlobal(self.loc, self.orientation);
 
     // Update the ball in the WorldObject block so that it can be accessed in python
-    ball.loc = globalBall;
-    ball.distance = ball.visionDistance;
-    ball.bearing = ball.visionBearing;
-    //ball.absVel = fill this in
+    Eigen::Matrix<float, 6, 1> measurement;
+    measurement << globalBall.x, globalBall.y,0,0,0,0;
+    auto ballState = ballFilter->specificFunction(measurement);
+    auto estimatedGlobalBall = Point2D(ballState[0],ballState[1]);
+    auto estimatedRelativeBall = estimatedGlobalBall.globalToRelative(self.loc, self.orientation);
+   // ball.loc = globalBall;
+    ball.loc.x = estimatedRelativeBall.x + ballState[2] * 3 + ballState[4] * 6.125;
+    ball.loc.y = estimatedRelativeBall.y + ballState[3] * 3 + ballState[5] * 6.125;
+    ball.endLoc = relBall;
+   // ball.distance = ball.visionDistance;
+    ball.distance = sqrt(ball.loc.x * ball.loc.x + ball.loc.y * ball.loc.y);
+   // ball.bearing = ball.visionBearing;
+    ball.bearing = atan(ball.loc.y/ball.loc.x);
+    ball.absVel = Vector2D(ballState[2] + ballState[4] * 3, ballState[3] + ballState[5] * 3);
 
     // Update the localization memory objects with localization calculations
     // so that they are drawn in the World window
@@ -110,7 +128,11 @@ void LocalizationModule::processFrame() {
   } 
   //TODO: How do we handle not seeing the ball?
   else {
-    ball.distance = 10000.0f;
-    ball.bearing = 0.0f;
+    timesUnseen = timesUnseen + 1;    
+    if (timesUnseen > 10) {
+      ball.distance = 10000.0f;
+      ball.bearing = 0.0f;
+      ballFilter->reset();
+    }
   }
 }

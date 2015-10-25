@@ -3,6 +3,9 @@
 #include <Module.h>
 #include <memory/MemoryCache.h>
 #include <localization/LocalizationParams.h>
+#include <localization/KalmanFilter.h>
+#include <localization/ExtendedKalmanFilter.h>
+#include <localization/GenericKalmanFilter.h>
 
 class ParticleFilter;
 class Point2D;
@@ -28,4 +31,6 @@ class LocalizationModule : public Module {
     TextLogger*& tlogger_;
     LocalizationParams params_;
     ParticleFilter* pfilter_;
+    KalmanFilter<6>* ballFilter;
+    int timesUnseen;
 };

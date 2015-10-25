@@ -905,6 +905,80 @@ sittingPoseV3[core.RShoulderRoll] = 0
 sittingPoseV3[core.RElbowYaw] = 0
 sittingPoseV3[core.RElbowRoll] = 0
 
+goalieSimBlockCenter = dict()
+
+goalieSimBlockCenter[core.HeadYaw] = 0.0
+goalieSimBlockCenter[core.HeadPitch] = 0
+goalieSimBlockCenter[core.LShoulderPitch] = 0
+goalieSimBlockCenter[core.LShoulderRoll] = 0
+goalieSimBlockCenter[core.LElbowYaw] = 0
+goalieSimBlockCenter[core.LElbowRoll] = 0
+goalieSimBlockCenter[core.LHipYawPitch] = -5
+goalieSimBlockCenter[core.LHipPitch] = -46.5
+goalieSimBlockCenter[core.LHipRoll] = -1.0 * 0
+goalieSimBlockCenter[core.LKneePitch] = 125
+goalieSimBlockCenter[core.LAnklePitch] = -70
+goalieSimBlockCenter[core.LAnkleRoll] = -1.0 * 0
+goalieSimBlockCenter[core.RHipYawPitch] = -5
+goalieSimBlockCenter[core.RHipPitch] = -46.5
+goalieSimBlockCenter[core.RHipRoll] = 0
+goalieSimBlockCenter[core.RKneePitch] = 125
+goalieSimBlockCenter[core.RAnklePitch] = -70
+goalieSimBlockCenter[core.RAnkleRoll] = 0
+goalieSimBlockCenter[core.RShoulderPitch] = 0
+goalieSimBlockCenter[core.RShoulderRoll] = 0
+goalieSimBlockCenter[core.RElbowYaw] = 0
+goalieSimBlockCenter[core.RElbowRoll] = 0
+
+goalieSimBlockLeft = dict()
+
+goalieSimBlockLeft[core.HeadYaw] = 0.0
+goalieSimBlockLeft[core.HeadPitch] = 0
+goalieSimBlockLeft[core.LShoulderPitch] = -90
+goalieSimBlockLeft[core.LShoulderRoll] = 70
+goalieSimBlockLeft[core.LElbowYaw] = 0
+goalieSimBlockLeft[core.LElbowRoll] = 0
+goalieSimBlockLeft[core.LHipYawPitch] = -5
+goalieSimBlockLeft[core.LHipPitch] = -46.5
+goalieSimBlockLeft[core.LHipRoll] = -1.0 * 0
+goalieSimBlockLeft[core.LKneePitch] = 125
+goalieSimBlockLeft[core.LAnklePitch] = -70
+goalieSimBlockLeft[core.LAnkleRoll] = -1.0 * 0
+goalieSimBlockLeft[core.RHipYawPitch] = -5
+goalieSimBlockLeft[core.RHipPitch] = -46.5
+goalieSimBlockLeft[core.RHipRoll] = 0
+goalieSimBlockLeft[core.RKneePitch] = 125
+goalieSimBlockLeft[core.RAnklePitch] = -70
+goalieSimBlockLeft[core.RAnkleRoll] = 0
+goalieSimBlockLeft[core.RShoulderPitch] = -90
+goalieSimBlockLeft[core.RShoulderRoll] = 0
+goalieSimBlockLeft[core.RElbowYaw] = 0
+goalieSimBlockLeft[core.RElbowRoll] = 0
+
+goalieSimBlockRight = dict()
+
+goalieSimBlockRight[core.HeadYaw] = 0.0
+goalieSimBlockRight[core.HeadPitch] = 0
+goalieSimBlockRight[core.LShoulderPitch] = -90
+goalieSimBlockRight[core.LShoulderRoll] = 0
+goalieSimBlockRight[core.LElbowYaw] = 0
+goalieSimBlockRight[core.LElbowRoll] = 0
+goalieSimBlockRight[core.LHipYawPitch] = -5
+goalieSimBlockRight[core.LHipPitch] = -46.5
+goalieSimBlockRight[core.LHipRoll] = -1.0 * 0
+goalieSimBlockRight[core.LKneePitch] = 125
+goalieSimBlockRight[core.LAnklePitch] = -70
+goalieSimBlockRight[core.LAnkleRoll] = -1.0 * 0
+goalieSimBlockRight[core.RHipYawPitch] = -5
+goalieSimBlockRight[core.RHipPitch] = -46.5
+goalieSimBlockRight[core.RHipRoll] = 0
+goalieSimBlockRight[core.RKneePitch] = 125
+goalieSimBlockRight[core.RAnklePitch] = -70
+goalieSimBlockRight[core.RAnkleRoll] = 0
+goalieSimBlockRight[core.RShoulderPitch] = -90
+goalieSimBlockRight[core.RShoulderRoll] = 90
+goalieSimBlockRight[core.RElbowYaw] = 0
+goalieSimBlockRight[core.RElbowRoll] = 0
 
 def setRobotSpecificSittingPose():
   id = core.CONFIG_ID

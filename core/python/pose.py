@@ -117,7 +117,7 @@ class Sit(Task):
     elif st.inState(st.sit):
       self.skippedState = False
       st.transition(st.relaxknee)
-      return ToPoseMoveHead(pose = cfgpose.sittingPoseV3)
+      return ToPoseMoveHead(pose = cfgpose.sittingPoseV3, time = 1.0)
     elif st.inState(st.relaxknee):
       self.lower_time = self.getTime()
       commands.setStiffness(cfgstiff.ZeroKneeAnklePitch, 0.3)
@@ -163,6 +163,14 @@ class StandStraight(Task):
 
     if self.getTime() > 2:
       self.finish()
+
+class GoalieSimulationLeft(Task):
+  def __init__(self, time = 3.0):
+    super(GoalieSimulationLeft, self).__init__(time=time)
+    self.setChain([
+      PoseSequence(
+        cfgpose.goalieSimBlockLeft, 1.0,
+      )])
 
 class Squat(Task):
   def __init__(self, time = 3.0):
