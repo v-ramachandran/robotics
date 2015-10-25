@@ -344,7 +344,7 @@ const Pose2D& ParticleFilter::pose() const {
 		Particle clusterCentroid = kMeans();
 		mean_.translation = T(clusterCentroid.x, clusterCentroid.y);
 		mean_.rotation = clusterCentroid.t;		
-    cout<<mean_.rotation<<endl;
+    // cout<<mean_.rotation<<endl;
     dirty_ = false;
   }
   return mean_;
