@@ -180,7 +180,7 @@ class Playing(StateMachine):
       ball = world_objects.getObjPtr(core.WO_BALL)
       if ball.seen:
         if (ball.visionDistance > 117):
-          commands.setWalkVelocity(.25,0,(ball.visionBearing / (math.pi / 2)))
+          commands.setWalkVelocity(.35,0,(ball.visionBearing / (math.pi / 2)))
         else:
           commands.setWalkVelocity(0, 0, 0)
           self.postSignal("OrientY")
