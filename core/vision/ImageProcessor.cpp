@@ -263,7 +263,7 @@ bool ImageProcessor::isCircularArea(struct TreeNode * treeNode){
   float width = (treeNode)->bottomright->x - (treeNode)->topleft->x;
   float height = (treeNode)->bottomright->y - (treeNode)->topleft->y;
   float expectedArea = width * height;
-  return (treeNode->numberOfPixels / expectedArea) > .7;
+  return (treeNode->numberOfPixels / expectedArea) > .6;
 }
 std::vector<BallCandidate*> ImageProcessor::getBallCandidates() {
   
@@ -273,6 +273,7 @@ std::vector<BallCandidate*> ImageProcessor::getBallCandidates() {
     float width = (*treeNode)->bottomright->x - (*treeNode)->topleft->x;
     float height = (*treeNode)->bottomright->y - (*treeNode)->topleft->y;
     float ratio = abs((width-height)/(width+height));
+    std::cout<<isSquare(*treeNode)<<" "<<(isAtleastMinimumSize(*treeNode))<<" "<<isCircularArea(*treeNode)<<" "<<hasMinimumArea(*treeNode)<<" "<<hasBallAspectRatio(*treeNode)<< endl;
     if(isSquare(*treeNode) && (isAtleastMinimumSize(*treeNode)) && isCircularArea(*treeNode) && hasMinimumArea(*treeNode) && hasBallAspectRatio(*treeNode)){
       struct BallCandidate* ball = new BallCandidate();
       ball->width = width;
@@ -299,17 +300,12 @@ BallCandidate* ImageProcessor::getBestBallCandidate() {
     
     if(camera_ == Camera::TOP) {
       float h = cmatrix_.groundDistance(q);
-//      float g = cmatrix_.groundDistance(p);
-//      if (abs(((*ball)->width / 2) - (cmatrix_.getCameraWidthByDistance(g, 65)/2)) < 2 && abs(((*ball)->height / 2) - (cmatrix_.getCameraHeightByDistance(g, 65)/2)) < 2) {
-//        return *ball;
-//      } 
       float calculatedCameraWidth = cmatrix_.getCameraWidthByDistance(h, 65);
       float calculatedCameraHeight = cmatrix_.getCameraHeightByDistance(h, 65);
       float expectedValue = (*ball)->width > (*ball)->height ? calculatedCameraWidth : calculatedCameraHeight;
       float actualValue = (*ball)->width > (*ball)->height ? (*ball)->width : (*ball)->height;
-    //  std::cout << "Values " << expectedValue << " " << actualValue << endl;
       float currentMargin = abs(expectedValue - actualValue);      
-      if (currentMargin < 4 && currentMargin < margin) {        
+      if (currentMargin < 6 && currentMargin < margin) {        
         candidate = *ball;
         margin = currentMargin;
       }
