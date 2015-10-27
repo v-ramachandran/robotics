@@ -149,12 +149,6 @@ class Playing(StateMachine):
       self.integral_x = 0
       commands.setWalkVelocity(0,0,0)
     
-    def __get_min_bound__(self, ball):
-      if ball.visionDistance < 200:
-        return 0.3 
-      else:
-        return 0.4
-
     def run(self):
       ball = world_objects.getObjPtr(core.WO_BALL)
       if ball.seen:
@@ -167,7 +161,7 @@ class Playing(StateMachine):
         velocity_x =  self.Kp * self.error_x + self.Kd * self.derivative_x + self.Ki * self.integral_x
         velocity_x = velocity_x / 1000 
         velocity_x = min(velocity_x, 0.6)
-        velocity_x = max(self.__get_min_bound__(ball), velocity_x)
+        velocity_x = max(0.28, velocity_x)
         
         commands.setWalkVelocity(velocity_x, 0, (ball.visionBearing / (math.pi / 2)))
         if self.error_x <= self.threshold:
@@ -186,7 +180,7 @@ class Playing(StateMachine):
       ball = world_objects.getObjPtr(core.WO_BALL)
       if ball.seen:
         if (ball.visionDistance > 117):
-          commands.setWalkVelocity(.3,0,(ball.visionBearing / (math.pi / 2)))
+          commands.setWalkVelocity(.25,0,(ball.visionBearing / (math.pi / 2)))
         else:
           commands.setWalkVelocity(0, 0, 0)
           self.postSignal("OrientY")
@@ -295,22 +289,6 @@ class Playing(StateMachine):
     orient_y = self.OrientY()
     kick = self.Kick()
 
-  #  self.trans(stand, C, declare)
-  #  self.trans(declare, S("Kick"), kick)
-
-    self.trans(stand, C, find_ball)
-
-    self.trans(find_ball, S("BallWalk"), ball_walk)
-
-    self.trans(ball_walk, S("SearchForBall"), find_ball)
-    self.trans(ball_walk, S("SearchForBeacon"), find_beacon)
-
-    self.trans(find_beacon, S("GoalTurnRight"), goal_turn_right)
-    self.trans(find_beacon, S("GoalTurnLeft"), goal_turn_left)
-
-    self.trans(goal_turn_right, S("OrientX"), orient_x)
-    self.trans(goal_turn_left, S("OrientX"), orient_x)
-
-    self.trans(orient_x, S("OrientY"), orient_y)
-    self.trans(orient_y, S("Kick"), kick)
+    self.trans(stand, C, declare)
+    self.trans(declare, S("Kick"), kick)
 

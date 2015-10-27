@@ -172,7 +172,7 @@ void ImageProcessor::getBlobNodes() {
     std::vector<struct TreeNode *> treeNodes ;
     for(int x=0; x<width; ++x) {
       Color detectedColor = ColorTableMethods::xy2color(image, color_table_, x, y, width);
-      if (currentColor != detectedColor) {
+      if ((currentColor != detectedColor || x==width-1) && (x!=0)) {
         // save old run
         if ((camera_ == Camera::TOP && (!(currentColor == c_FIELD_GREEN || currentColor == c_UNDEFINED || currentColor == c_ROBOT_WHITE || currentColor == c_WHITE))) || 
             (camera_ == Camera::BOTTOM && (currentColor == c_ORANGE))) {
@@ -327,6 +327,10 @@ bool ImageProcessor::goalAspectRatioTest(struct TreeNode * node){
   return (ratio>=1.1 && ratio<=3.0);
 }
 
+bool ImageProcessor::hasGreenBelow(struct TreeNode * node) {
+  return true;
+}
+
 void ImageProcessor::detectGoal() {
   TreeNode* goalCandidate = getBestGoalCandidate();
   if(!goalCandidate) return; // function defined elsewhere that fills in imageX, imageY by reference
@@ -356,8 +360,12 @@ std::vector<TreeNode*> ImageProcessor::getGoalCandidates() {
     float height = (*treeNode)->bottomright->y - (*treeNode)->topleft->y;
     float area = width * height;
     float numberPixels = (*treeNode)->numberOfPixels;
+    
+    if(numberPixels > 150) {
+      //std::cout << (*treeNode)->bottomright->x << " " << (*treeNode)->bottomright->y << " " << (*treeNode)->topleft->x << " " << (*treeNode)->topleft->y << endl;
+    }
 
-    if((width>=5) && (height>=5) && ((numberPixels/area) > .6) && (numberPixels > 1100)){
+    if((width>=5) && (height>=5) && ((numberPixels/area) > .2) && (numberPixels > 1100) && hasGreenBelow((*treeNode))){
       goalNodes.push_back(*treeNode);
     }  
   }
