@@ -273,7 +273,7 @@ std::vector<BallCandidate*> ImageProcessor::getBallCandidates() {
     float width = (*treeNode)->bottomright->x - (*treeNode)->topleft->x;
     float height = (*treeNode)->bottomright->y - (*treeNode)->topleft->y;
     float ratio = abs((width-height)/(width+height));
-    std::cout<<isSquare(*treeNode)<<" "<<(isAtleastMinimumSize(*treeNode))<<" "<<isCircularArea(*treeNode)<<" "<<hasMinimumArea(*treeNode)<<" "<<hasBallAspectRatio(*treeNode)<< endl;
+    // std::cout<<isSquare(*treeNode)<<" "<<(isAtleastMinimumSize(*treeNode))<<" "<<isCircularArea(*treeNode)<<" "<<hasMinimumArea(*treeNode)<<" "<<hasBallAspectRatio(*treeNode)<< endl;
     if(isSquare(*treeNode) && (isAtleastMinimumSize(*treeNode)) && isCircularArea(*treeNode) && hasMinimumArea(*treeNode) && hasBallAspectRatio(*treeNode)){
       struct BallCandidate* ball = new BallCandidate();
       ball->width = width;
@@ -311,7 +311,7 @@ BallCandidate* ImageProcessor::getBestBallCandidate() {
       }
     } else {
     //  std::cout << (*ball)-> width << endl;      
-      if (((*ball)->width < 65) && ((*ball)->width > 30) && ((*ball)->height < 65) && ((*ball)->height > 30)) {
+      if (((*ball)->width < 65) && ((*ball)->width > 25) && ((*ball)->height < 65) && ((*ball)->height > 25)) {
         return *ball;
       } 
     }
