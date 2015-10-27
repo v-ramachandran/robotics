@@ -1,7 +1,14 @@
-import memory, pose, commands, cfgstiff, core, mem_objects, math
+import memory, pose, commands, cfgstiff, core, mem_objects, math, cfgpose
 from task import Task
 from memory import *
 from state_machine import *
+
+class Declare(Node):
+  def run(self):
+    memory.speech.say("Starting up Keeper")
+    commands.stand()
+    if self.getTime() > 2.0:
+      self.postSignal("block")
 
 class Blocker(Node):
   def __init__(self):
@@ -48,7 +55,8 @@ class BlockingLeft(StateMachine):
       self.finish()
 
   def setup(self):
-    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockLeft, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+#    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockLeft, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+    self.trans(pose.BlockLeft(), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
 
 class BlockingRight(StateMachine):
   class PerformLogistics(Node):
@@ -59,7 +67,8 @@ class BlockingRight(StateMachine):
       self.finish()
 
   def setup(self):
-    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockRight, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+#    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockRight, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+    self.trans(pose.BlockRight(), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
 
 class BlockingCenter(StateMachine):
   class PerformLogistics(Node):
@@ -71,15 +80,22 @@ class BlockingCenter(StateMachine):
     
   def setup(self):
     self.trans(pose.PoseSequence(cfgpose.goalieSimBlockCenter, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+#    self.trans(pose.Squat(), T(3.0), self.PerformLogistics(), C, pose.Stand())
 
 class Set(LoopingStateMachine):
   def setup(self):
     blocker = Blocker()
-    self.trans(blocker, S("left"), BlockingLeft(), T(5), blocker)
-    self.trans(blocker, S("right"), BlockingRight(), T(5), blocker)
-    self.trans(blocker, S("center"), BlockingCenter(), T(5), blocker)
+    declare = Declare()
+    self.trans(declare, S("block"), blocker)
+    self.trans(blocker, S("left"), BlockingLeft(), T(5.0), declare)
+    self.trans(blocker, S("right"), BlockingRight(), T(5.0), declare)
+    self.trans(blocker, S("center"), BlockingCenter(), T(5.0), declare)
 
 class Playing(StateMachine):
+  class Declare(Node):
+    def run(self):
+      memory.speech.say("Starting up Kicker")
+      self.postSignal("Kick")
 
   class Stand(Node):
     def run(self):
@@ -251,7 +267,7 @@ class Playing(StateMachine):
         self.last_goal_bearing = goal.visionBearing
         self.turn_left = (goal.visionBearing < 0)
 
-      if self.last_goal_bearing and (abs(self.last_goal_bearing) <= math.pi/24):
+      if self.last_goal_bearing and (abs(self.last_goal_bearing) <= math.pi/48):
         commands.setWalkVelocity(0,0,0)
         self.postSignal("OrientX")
       else:
@@ -262,6 +278,7 @@ class Playing(StateMachine):
           commands.setWalkVelocity(0, scale*0.4, (ball.visionBearing / (math.pi / 2)))
 
   def setup(self):
+    declare = self.Declare()
     stand = self.Stand()
     find_ball = self.SearchForBall()
     ball_walk = self.BallWalk(120, 20, 0.9, 0.2, 0.00075)
@@ -271,6 +288,9 @@ class Playing(StateMachine):
     orient_x = self.OrientX()
     orient_y = self.OrientY()
     kick = self.Kick()
+
+  #  self.trans(stand, C, declare)
+  #  self.trans(declare, S("Kick"), kick)
 
     self.trans(stand, C, find_ball)
 

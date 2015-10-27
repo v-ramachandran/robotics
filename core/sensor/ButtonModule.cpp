@@ -118,6 +118,9 @@ void ButtonModule::processCenterPresses() {
       speech_->say("ON");
     //speech_->say("set");
     //game_state_->setState(SET);
+  } else if (center_.presses == 2) {
+    speech_->say("Moving to set");
+    game_state_->setState(SET);
   } else if (center_.presses == 5) {
     game_state_->setState(FINISHED);
   } else if (center_.presses == 6) {
