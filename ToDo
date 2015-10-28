@@ -1,7 +1,7 @@
 3. Goalie blocking movement
 4. Goalie adjustment in false positives
 5. starting up of goalie behavior
-
+6. optimize particle filter for goalie
 +++++++++++++++++++++++++++
 1. Adjust kick direction
 2. Adjust kick power

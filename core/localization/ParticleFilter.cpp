@@ -10,6 +10,17 @@ ParticleFilter::ParticleFilter(MemoryCache& cache, TextLogger*& tlogger)
 }
 
 void ParticleFilter::init(Point2D loc, float orientation) {
+  init(loc, orientation, true);
+}
+
+void ParticleFilter::init(Point2D loc, float orientation, bool isFirstField) {
+  if (isFirstField) {
+    int beacons[] = {WO_BEACON_YELLOW_PINK, WO_BEACON_YELLOW_BLUE, WO_BEACON_BLUE_PINK};
+    fieldBeacons = std::vector<int>(beacons, beacons + sizeof(beacons) / sizeof(int));
+  } else {
+    int beacons[] = {WO_BEACON_PINK_YELLOW, WO_BEACON_BLUE_YELLOW, WO_BEACON_PINK_BLUE};
+    fieldBeacons = std::vector<int>(beacons, beacons + sizeof(beacons) / sizeof(int));
+  }
 
   particleIndices.resize(numParticles);
   std::iota(particleIndices.begin(), particleIndices.end(), 0);
@@ -20,17 +31,10 @@ void ParticleFilter::init(Point2D loc, float orientation) {
   int x = xMin;
   int y = yMin;
   for(auto& p : particles()) {
- //   p.x = x;
- //   p.y = y;
     p.x = rand_.sampleN(0, 1000);
     p.y = rand_.sampleN(0, 750);
     p.t = rand_.sampleN(0, M_PI);
     p.w = rand_.sampleU();
- //   y++;
- //   if (y > yMax) {
- //     x++;
- //     y = yMin;
- //   }
   }
   
   for (int iteration = 0; iteration < historySize; iteration++) {
@@ -172,14 +176,11 @@ bool ParticleFilter::checkBeaconVisibility(Point2D beaconLoc, Particle p ){
 }
 
 float ParticleFilter::createParticleWeights() {
-  int beaconColors[6] = {WO_BEACON_YELLOW_PINK, WO_BEACON_PINK_YELLOW, WO_BEACON_PINK_BLUE, WO_BEACON_BLUE_PINK, WO_BEACON_YELLOW_BLUE, WO_BEACON_BLUE_YELLOW };
+  // int beaconColors[6] = {WO_BEACON_YELLOW_PINK, WO_BEACON_PINK_YELLOW, WO_BEACON_PINK_BLUE, WO_BEACON_BLUE_PINK, WO_BEACON_YELLOW_BLUE, WO_BEACON_BLUE_YELLOW };
   int maxPenalty = 70;
   int maxPenaltyPadding = 20;
   int orientationPenaltyScale = 150;
   int totalWeight = 0;
-  for (auto color : beaconColors) {
-    
-  }
 
         //cout << i << "|" << object.visionBearing << "|" << Point2D(p.x,p.y).getBearingTo(object.loc, p.t) << "|" << rotationProbability << "|" << orientationPenaltyScale*(1-rotationProbability) << "|" << p.w << endl;
         // cout << i << "|" << p.x << "|" << object.loc.x << "|" << p.y << "|" << object.loc.y << "|" << object.loc.x << "|" << object.loc.y << "|" << probability << "|" << penalty << "|" << p.w << endl;
@@ -187,8 +188,8 @@ float ParticleFilter::createParticleWeights() {
   float averageWeight = 0.0;
   for(auto& p : particles()) {
     p.w = 600;
-    for (int i = 0; i < 6; ++i) {
-      auto &object = cache_.world_object->objects_[beaconColors[i]];
+    for (int i = 0; i < fieldBeacons.size(); ++i) {
+      auto &object = cache_.world_object->objects_[fieldBeacons[i]];
       if (object.seen && checkBeaconVisibility(object.loc, p)) {
         float meanDistance = sqrt((object.loc.x - p.x) * (object.loc.x - p.x) + (object.loc.y - p.y) * (object.loc.y - p.y));
         float measurementDistance = object.visionDistance;
@@ -334,17 +335,17 @@ const Pose2D& ParticleFilter::pose() const {
     // Compute the mean pose estimate
     mean_ = Pose2D();
     using T = decltype(mean_.translation);
- /*   for(const auto& p : particles()) {
+    for(const auto& p : particles()) {
       mean_.translation += T(p.x,p.y);
       mean_.rotation += p.t;
     }
     
     if(particles().size() > 0)
-      mean_ /= particles().size();*/
-		Particle clusterCentroid = kMeans();
+      mean_ /= particles().size();
+/**		Particle clusterCentroid = kMeans();
 		mean_.translation = T(clusterCentroid.x, clusterCentroid.y);
 		mean_.rotation = clusterCentroid.t;		
-    // cout<<mean_.rotation<<endl;
+    // cout<<mean_.rotation<<endl; **/
     dirty_ = false;
   }
   return mean_;

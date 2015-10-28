@@ -16,6 +16,7 @@ class ParticleFilter {
   public:
     ParticleFilter(MemoryCache& cache, TextLogger*& tlogger);
     void init(Point2D loc, float orientation);
+    void init(Point2D loc, float orientation, bool isFirstField);
     void processFrame();
     const Pose2D& pose() const;
     inline const std::vector<Particle>& particles() const {
@@ -52,7 +53,7 @@ class ParticleFilter {
     float alphaSlow = 0.003;
     float wSlow = 0.0;
     float wFast = 0.0;
-
+    std::vector<int> fieldBeacons;
     std::queue<int> qualityHistory;
     int historySize = 20;
     int cooldownPeriod = 10;

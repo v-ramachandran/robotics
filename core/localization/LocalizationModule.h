@@ -20,6 +20,7 @@ class LocalizationModule : public Module {
     void initFromMemory();
     void initFromWorld();
     void reInit();
+    void initWithFilterBeacons(bool isFirstField);
     void processFrame();
 
     void loadParams(LocalizationParams params);

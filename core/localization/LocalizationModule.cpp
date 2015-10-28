@@ -63,6 +63,11 @@ void LocalizationModule::initFromWorld() {
   printf("%d %d\n",self.loc.x, self.loc.y);
 }
 
+void LocalizationModule::initWithFilterBeacons(bool isFirstField) {
+  reInit();
+  pfilter_->init(Point2D(-750,0), 0.0f, isFirstField);
+}
+
 // Reinitialize from scratch
 void LocalizationModule::reInit() {
   pfilter_->init(Point2D(-750,0), 0.0f);
@@ -90,7 +95,9 @@ void LocalizationModule::processFrame() {
   self.loc = pfilter_->pose().translation;
   self.orientation = pfilter_->pose().rotation;
   log(40, "Localization Update: x=%2.f, y=%2.f, theta=%2.2f", self.loc.x, self.loc.y, self.orientation * RAD_T_DEG);
-    
+//  auto sloc = cache_.localization_mem->player;
+//  self.loc = sloc;    
+
   //TODO: modify this block to use your Kalman filter implementation
   if(ball.seen) {
     timesUnseen = 0;
