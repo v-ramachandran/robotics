@@ -56,7 +56,7 @@ class BlockingLeft(StateMachine):
 
   def setup(self):
 #    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockLeft, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
-    self.trans(pose.BlockLeft(), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+    self.trans(pose.BlockLeft(), T(10.0), self.PerformLogistics())
 
 class BlockingRight(StateMachine):
   class PerformLogistics(Node):
@@ -68,7 +68,7 @@ class BlockingRight(StateMachine):
 
   def setup(self):
 #    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockRight, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
-    self.trans(pose.BlockRight(), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+    self.trans(pose.BlockRight(), T(10.0), self.PerformLogistics())
 
 class BlockingCenter(StateMachine):
   class PerformLogistics(Node):
@@ -79,17 +79,18 @@ class BlockingCenter(StateMachine):
       self.finish()
     
   def setup(self):
-    self.trans(pose.PoseSequence(cfgpose.goalieSimBlockCenter, 0.3), T(3.0), self.PerformLogistics(), C, pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+    self.trans(pose.PoseSequence(cfgpose.blockcenter2, 0.7), C, pose.PoseSequence(cfgpose.blockcenter2, 2.0), T(4.0), pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
 #    self.trans(pose.Squat(), T(3.0), self.PerformLogistics(), C, pose.Stand())
 
 class Set(LoopingStateMachine):
   def setup(self):
     blocker = Blocker()
     declare = Declare()
-    self.trans(declare, S("block"), blocker)
-    self.trans(blocker, S("left"), BlockingLeft(), T(5.0), declare)
-    self.trans(blocker, S("right"), BlockingRight(), T(5.0), declare)
-    self.trans(blocker, S("center"), BlockingCenter(), T(5.0), declare)
+    #self.trans(declare, S("block"), blocker)
+    #self.trans(blocker, S("left"), BlockingLeft(), C, declare)
+    #self.trans(blocker, S("right"), BlockingRight(), C, declare)
+    #self.trans(blocker, S("center"), BlockingCenter(), C, pose.Sit(), declare)
+    self.trans(pose.Stand(), C, BlockingCenter(), C, pose.Sit(), C, pose.Stand(), C, BlockingRight(), C, pose.Stand(), C, BlockingLeft(), C, pose.Sit())
 
 class Playing(StateMachine):
   class Declare(Node):

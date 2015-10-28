@@ -1,5 +1,30 @@
 ---
 keyframes:
+  - name: goalie
+    frames: 100
+    joints:
+      HeadYaw: 0
+      HeadPitch: 0
+      LHipYawPitch: -54.9999992537847
+      LHipRoll: -4.99999985454646
+      LHipPitch: -21.4999994599271
+      LKneePitch: 125.000002340077
+      LAnklePitch: -69.9999996711977
+      LAnkleRoll: -0.999999992253633
+      RHipYawPitch: -54.9999992537847
+      RHipRoll: -4.99999985454646
+      RHipPitch: -21.4999994599271
+      RKneePitch: 125.000002340077
+      RAnklePitch: -69.9999996711977
+      RAnkleRoll: -0.999999992253633
+      LShoulderPitch: -90.0000025044782
+      LShoulderRoll: 0
+      LElbowYaw: 0
+      LElbowRoll: 0
+      RShoulderPitch: -90.0000025044782
+      RShoulderRoll: 0
+      RElbowYaw: 0
+      RElbowRoll: 0
   - name: Keyframe 0
     frames: 100
     joints:
@@ -175,4 +200,29 @@ keyframes:
       RShoulderRoll: 8.0884466189125
       RElbowYaw: -1.05229992466718
       RElbowRoll: -1.67234449752094
+  - name: Keyframe 8
+    frames: 100
+    joints:
+      HeadYaw: -0.0902951008275686
+      HeadPitch: -29.5292163859046
+      LHipYawPitch: -45.4376148874564
+      LHipRoll: -20.1296056727814
+      LHipPitch: -26.2772267182781
+      LKneePitch: 123.924930564717
+      LAnklePitch: -69.3489870206471
+      LAnkleRoll: 8.17152903997654
+      RHipYawPitch: -45.4376148874564
+      RHipRoll: -22.9373325160336
+      RHipPitch: -27.4246301969486
+      RKneePitch: 123.314502898215
+      RAnklePitch: -67.7621155103997
+      RAnkleRoll: 8.96735536130974
+      LShoulderPitch: -94.3054190779849
+      LShoulderRoll: 45.04542542275017
+      LElbowYaw: -0.353967723546741
+      LElbowRoll: -1.66753604434525
+      RShoulderPitch: -97.8259034818846
+      RShoulderRoll: 45.04542542275017
+      RElbowYaw: -0.788627301948012
+      RElbowRoll: -0.705531220505637
 ...
