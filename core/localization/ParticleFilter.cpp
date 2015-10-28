@@ -31,8 +31,8 @@ void ParticleFilter::init(Point2D loc, float orientation, bool isFirstField) {
   int x = xMin;
   int y = yMin;
   for(auto& p : particles()) {
-    p.x = rand_.sampleN(0, 1000);
-    p.y = rand_.sampleN(0, 750);
+    p.x = abs(rand_.sampleN(0, 400));
+    p.y = rand_.sampleN(0, 400);
     p.t = rand_.sampleN(0, M_PI);
     p.w = rand_.sampleU();
   }
