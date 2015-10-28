@@ -1,4 +1,4 @@
-import memory, pose, commands, cfgstiff, core, mem_objects, math, cfgpose
+import memory, pose, commands, cfgstiff, core, mem_objects, math, cfgpose, geometry
 from task import Task
 from memory import *
 from state_machine import *
@@ -9,6 +9,66 @@ class Declare(Node):
     commands.stand()
     if self.getTime() > 2.0:
       self.postSignal("block")
+
+class StartUp(Node):
+  def run(self):
+    commands.stand()
+    if self.getTime() > 2.0:
+      self.postSignal("decide")
+
+class DecideFieldSetting(Node):
+  def __init__(self):
+    self.toTurn = math.pi / 96
+    self.toPan = 0
+    super(self.__class__, self).__init__()
+
+  def run(self):
+    beacon1 = mem_objects.world_objects[core.WO_BEACON_YELLOW_BLUE]
+    beacon2 = mem_objects.world_objects[core.WO_BEACON_BLUE_YELLOW]
+    beacon3 = mem_objects.world_objects[core.WO_BEACON_YELLOW_PINK]
+    beacon4 = mem_objects.world_objects[core.WO_BEACON_PINK_YELLOW]
+    beacon5 = mem_objects.world_objects[core.WO_BEACON_BLUE_PINK]
+    beacon6 = mem_objects.world_objects[core.WO_BEACON_PINK_BLUE]
+
+    if beacon1.seen or beacon3.seen or beacon5.seen:
+      # re init with first field
+      core.localizationC.initWithFilterBeacons(True)
+      commands.setHeadPan(0, target_time = 0.5)
+      self.postSignal("localize")
+    elif beacon2.seen or beacon4.seen or beacon6.seen:
+      # re init with second field
+      core.localizationC.initWithFilterBeacons(False)
+      commands.setHeadPan(0, target_time = 0.5)
+      self.postSignal("localize")
+    else:
+      if (core.joint_values[core.HeadPan] >= ((math.pi / 3) - 0.05)):
+        self.toTurn = (-1)*(math.pi / 128) 
+      elif (core.joint_values[core.HeadPan] <= (((-1) * math.pi / 3) + 0.05)):
+        self.toTurn = (math.pi / 128)
+      new_value = self.toPan + self.toTurn
+      max_cap = max(new_value, (-1)*(math.pi/3))
+      min_cap = min(max_cap, math.pi / 3)
+      self.toPan = min_cap
+      commands.setHeadPan(self.toPan, target_time = 0.75)
+
+class Localize(Node):
+  def __init__(self):
+    self.toTurn = math.pi / 96
+    self.toPan = 0
+    super(self.__class__, self).__init__()
+
+  def run(self):
+    if (core.joint_values[core.HeadPan] >= ((5*(math.pi / 12)) - 0.05)):
+      self.toTurn = (-1)*(math.pi / 96) 
+    elif (core.joint_values[core.HeadPan] <= ((math.pi/8) + 0.05)):
+      self.toTurn = (math.pi / 96)
+    new_value = self.toPan + self.toTurn
+    max_cap = max(new_value, math.pi / 8)
+    min_cap = min(max_cap, (5*(math.pi / 12)))
+    self.toPan = min_cap
+    commands.setHeadPan(self.toPan, target_time = 1.0)
+    if self.getTime() >= 10.0:
+      self.postSignal("declare")
 
 class Blocker(Node):
   def __init__(self):
@@ -22,7 +82,20 @@ class Blocker(Node):
     return intercept
 
   def __position_between_ball__(self):
-    pass
+    ball = mem_objects.world_objects[core.WO_BALL]
+    mypos = mem_objects.world_objects[memory.robot_state.WO_SELF]
+    currentpos = geometry.Point2D(mypos.loc.x, mypos.loc.y)
+    center = geometry.Point2D(0,0)
+    bearing = currentpos.getBearingTo(center, mypos.orientation)
+   # bearing = math.pi/10
+    print bearing
+    if ball.seen and ball.visionBearing >= math.pi/18:
+      commands.setWalkVelocity(0,0.4,bearing/(math.pi/2))
+    elif ball.seen and ball.visionBearing <= -1 * math.pi/18:
+      commands.setWalkVelocity(0,-0.4,-1*bearing/(math.pi/2))
+    else:
+      commands.setWalkVelocity(0,0,0)
+      
   
   def run(self):
     ball = mem_objects.world_objects[core.WO_BALL]
@@ -86,12 +159,19 @@ class Set(LoopingStateMachine):
   def setup(self):
     blocker = Blocker()
     declare = Declare()
-    #self.trans(declare, S("block"), blocker)
-    #self.trans(blocker, S("left"), BlockingLeft(), C, declare)
-    #self.trans(blocker, S("right"), BlockingRight(), C, declare)
-    #self.trans(blocker, S("center"), BlockingCenter(), C, pose.Sit(), declare)
-    self.trans(pose.Stand(), C, BlockingCenter(), C, pose.Sit(), C, pose.Stand(), C, BlockingRight(), C, pose.Stand(), C, BlockingLeft(), C, pose.Sit())
-
+    start_up = StartUp()
+    localize = Localize()
+    decide = DecideFieldSetting()
+    
+    self.trans(start_up, S("decide"), decide)
+    self.trans(decide, S("localize"), localize)
+    self.trans(localize, S("declare"), declare )
+    self.trans(declare, S("block"), blocker)
+    self.trans(blocker, S("left"), BlockingLeft(), C, declare)
+    self.trans(blocker, S("right"), BlockingRight(), C, declare)
+    self.trans(blocker, S("center"), BlockingCenter(), C, pose.Sit(), C, declare)
+    #self.trans(pose.Stand(), C, BlockingCenter(), C, pose.Sit(), C, pose.Stand(), C, BlockingRight(), C, pose.Stand(), C, BlockingLeft(), C, pose.Sit())
+  
 class Playing(StateMachine):
   class Declare(Node):
     def run(self):

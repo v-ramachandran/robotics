@@ -33,7 +33,7 @@ void ParticleFilter::init(Point2D loc, float orientation, bool isFirstField) {
   for(auto& p : particles()) {
     p.x = abs(rand_.sampleN(0, 400));
     p.y = rand_.sampleN(0, 400);
-    p.t = rand_.sampleN(0, M_PI);
+    p.t = rand_.sampleN(0, M_PI/2);
     p.w = rand_.sampleU();
   }
   
@@ -151,8 +151,8 @@ void ParticleFilter::propagateToNext() {
 		p.y = disp.translation.x * sin(p.t)+ disp.translation.y * cos(p.t) + p.y;
 
 //    if(!isEqual(disp.translation.x,0) || !isEqual(disp.translation.y,0)){
-      p.x += rand_.sampleN(0, 7);
-      p.y += rand_.sampleN(0, 7);
+      p.x += rand_.sampleN(0, 2);
+      p.y += rand_.sampleN(0, 5);
 //    }
     p.w = p.w;
     
@@ -272,9 +272,9 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
     
     randomNumber = (rand() % numParticles) + 1;
     if(randomNumber <= (int)(100 * probability)){
-      resampledParticles[index].x = rand_.sampleN(0, 1000);
-      resampledParticles[index].y = rand_.sampleN(0, 500);
-      resampledParticles[index].t = rand_.sampleN(0, M_PI / 2);
+      resampledParticles[index].x = abs(rand_.sampleN(0, 400));
+      resampledParticles[index].y = rand_.sampleN(0, 400);
+      resampledParticles[index].t = rand_.sampleN(0, M_PI/2);
       resampledParticles[index].w = 600; 
     }
     else{
