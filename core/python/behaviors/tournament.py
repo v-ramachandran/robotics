@@ -70,24 +70,15 @@ class Localize(Node):
     if self.getTime() >= 10.0:
       self.postSignal("declare")
 
-class Blocker(Node):
-  def __init__(self):
-    self.timesUnseen = 0
-    self.lastNoisyX = 0
-    super(self.__class__, self).__init__()  
+class PositionBetweenBall(Node):
   
-  def __compute_y_at_origin__(self, point1, point2):
-    slope = (point2.y - point1.y)/(point2.x - point1.x)
-    intercept = point2.y - (slope * point2.x)
-    return intercept
-
-  def __position_between_ball__(self):
+  def run(self):
     ball = mem_objects.world_objects[core.WO_BALL]
     mypos = mem_objects.world_objects[memory.robot_state.WO_SELF]
     currentpos = geometry.Point2D(mypos.loc.x, mypos.loc.y)
     center = geometry.Point2D(0,0)
     bearing = currentpos.getBearingTo(center, mypos.orientation)
-   # bearing = math.pi/10
+    bearing = math.pi/10
     print bearing
     if ball.seen and ball.visionBearing >= math.pi/18:
       commands.setWalkVelocity(0,0.4,bearing/(math.pi/2))
@@ -95,16 +86,65 @@ class Blocker(Node):
       commands.setWalkVelocity(0,-0.4,-1*bearing/(math.pi/2))
     else:
       commands.setWalkVelocity(0,0,0)
-      
+      self.postSignal("block")
+
+class Blocker(Node):
+  def __init__(self):
+    self.timesUnseen = 0
+    self.lastNoisyX = 0
+    self.timesSeen = 0
+    self.positioning = True    
+    super(self.__class__, self).__init__()  
+  
+  def __is_within_bounds__(self):
+    ball = mem_objects.world_objects[core.WO_BALL]
+
+    if ball.visionDistance < 500:
+      return False
+    return True  
+
+  def __compute_y_at_origin__(self, point1, point2):
+    slope = (point2.y - point1.y)/(point2.x - point1.x)
+    intercept = point2.y - (slope * point2.x)
+    return intercept
+
+  def __position_between_ball__(self):
+    beacon_blue_yellow = world_objects.getObjPtr(core.WO_BEACON_BLUE_YELLOW)
+    beacon_yellow_blue = world_objects.getObjPtr(core.WO_BEACON_YELLOW_BLUE)
+    beacon_pink_blue = world_objects.getObjPtr(core.WO_BEACON_PINK_BLUE)
+    beacon_blue_pink = world_objects.getObjPtr(core.WO_BEACON_BLUE_PINK)    
+
+    ball = mem_objects.world_objects[core.WO_BALL]
+    mypos = mem_objects.world_objects[memory.robot_state.WO_SELF]
+    currentpos = geometry.Point2D(mypos.loc.x, mypos.loc.y)
+    center = geometry.Point2D(0,0)
+    bearing = currentpos.getBearingTo(center, mypos.orientation)
+    bearing = math.pi/10
+    print bearing
+    if ball.seen and ball.visionBearing >= math.pi/18 and self.__is_within_bounds__() and not ((beacon_blue_yellow.seen and beacon_blue_yellow.visionBearing <= 0) or (beacon_yellow_blue.seen and beacon_yellow_blue.visionBearing <= 0)):
+      self.positioning = True
+      print "beacon bearing ",beacon_yellow_blue.visionBearing
+      commands.setWalkVelocity(0,0.4,bearing/(math.pi/2))
+    elif ball.seen and ball.visionBearing <= -1 * math.pi/18 and self.__is_within_bounds__() and not ((beacon_blue_pink.seen and beacon_blue_pink.visionBearing >= 0) or (beacon_yellow_blue.seen and beacon_yellow_blue.visionBearing >= 0)):
+      self.positioning = True
+      print "beacon bearing ",beacon_blue_pink.visionBearing
+      commands.setWalkVelocity(0,-0.4,-1*bearing/(math.pi/2))
+    else:
+      if self.positioning:
+        self.positioning = False
+        commands.setWalkVelocity(0,0,0)
+        commands.stand()
   
   def run(self):
     ball = mem_objects.world_objects[core.WO_BALL]
     if ball.seen:
+      self.timesSeen = self.timesSeen + 1
       self.__position_between_ball__()
       self.timesUnseen = 0
       commands.setHeadPan(ball.visionBearing, 0.2)
-      if (ball.distance < 500) and (ball.absVel.x < -50):
+      if self.timesSeen >= 2 and (ball.distance < 500) and (ball.absVel.x < -50) and (ball.absVel.x > -200) and not self.positioning:
         UTdebug.log(15, "Ball is close, blocking!")
+        print "when blocking ",ball.absVel.x
         y_at_origin = self.__compute_y_at_origin__(ball.loc, ball.endLoc)
         if y_at_origin >= 120:
           choice = "left"
@@ -112,9 +152,10 @@ class Blocker(Node):
           choice = "right"
         else:
          choice = "center"
-        self.postSignal(choice)  
+        self.postSignal(choice)
       self.lastNoisyX = ball.endLoc.x
     else:
+      self.timesSeen = 0
       self.timesUnseen = self.timesUnseen + 1
     if self.timesUnseen > 10:
       commands.setHeadPan(0,0.1)
@@ -152,7 +193,7 @@ class BlockingCenter(StateMachine):
       self.finish()
     
   def setup(self):
-    self.trans(pose.PoseSequence(cfgpose.blockcenter2, 0.7), C, pose.PoseSequence(cfgpose.blockcenter2, 2.0), T(4.0), pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+    self.trans(pose.PoseSequence(cfgpose.blockcenter2, 0.6), C, pose.PoseSequence(cfgpose.blockcenter2, 2.0), T(4.0), pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
 #    self.trans(pose.Squat(), T(3.0), self.PerformLogistics(), C, pose.Stand())
 
 class Set(LoopingStateMachine):
@@ -161,6 +202,7 @@ class Set(LoopingStateMachine):
     declare = Declare()
     start_up = StartUp()
     localize = Localize()
+    position = PositionBetweenBall()
     decide = DecideFieldSetting()
     
     self.trans(start_up, S("decide"), decide)
@@ -231,10 +273,24 @@ class Playing(StateMachine):
       commands.setWalkVelocity(0,0,0)
     
     def __get_min_bound__(self, ball):
-      if ball.visionDistance < 200:
-        return 0.3 
-      else:
+      if ball.visionDistance >= 1000:
+        return 0.525
+      if ball.visionDistance >= 700:
+        return 0.50
+      if ball.visionDistance >= 600:
+        return 0.50
+      if ball.visionDistance >= 500:
+        return 0.50
+      if ball.visionDistance >= 400:
+        return 0.50
+      if ball.visionDistance >= 300:
+        return 0.45
+      if ball.visionDistance >= 200:
+        return 0.425
+      elif ball.visionDistance >= 100:
         return 0.4
+      else:
+        return 0.35
 
     def run(self):
       ball = world_objects.getObjPtr(core.WO_BALL)
@@ -249,7 +305,7 @@ class Playing(StateMachine):
         velocity_x = velocity_x / 1000 
         velocity_x = min(velocity_x, 0.6)
         velocity_x = max(self.__get_min_bound__(ball), velocity_x)
-        
+        velocity_x = self.__get_min_bound__(ball)
         commands.setWalkVelocity(velocity_x, 0, (ball.visionBearing / (math.pi / 2)))
         if self.error_x <= self.threshold:
           self.__reset__()
@@ -267,7 +323,7 @@ class Playing(StateMachine):
       ball = world_objects.getObjPtr(core.WO_BALL)
       if ball.seen:
         if (ball.visionDistance > 117):
-          commands.setWalkVelocity(.3,0,(ball.visionBearing / (math.pi / 2)))
+          commands.setWalkVelocity(.4,0,(ball.visionBearing / (math.pi / 2)))
         else:
           commands.setWalkVelocity(0, 0, 0)
           self.postSignal("OrientY")
@@ -360,7 +416,7 @@ class Playing(StateMachine):
       else:
         scale = 1 if self.turn_left else -1
         if ball.visionDistance > 220:
-          commands.setWalkVelocity(0.3, 0, (ball.visionBearing / (math.pi / 2)))
+          commands.setWalkVelocity(0.4, 0, (ball.visionBearing / (math.pi / 2)))
         else: 
           commands.setWalkVelocity(0, scale*0.4, (ball.visionBearing / (math.pi / 2)))
 

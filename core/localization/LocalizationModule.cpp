@@ -60,18 +60,21 @@ void LocalizationModule::initFromWorld() {
   reInit();
   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
   pfilter_->init(self.loc, self.orientation);
+  cache_.localization_mem->player = self.loc;
   printf("%d %d\n",self.loc.x, self.loc.y);
 }
 
 void LocalizationModule::initWithFilterBeacons(bool isFirstField) {
   reInit();
   pfilter_->init(Point2D(750,0), 0.0f, isFirstField);
+  auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
+  cache_.localization_mem->player = self.loc;
 }
 
 // Reinitialize from scratch
 void LocalizationModule::reInit() {
   pfilter_->init(Point2D(750,0), 0.0f);
-//  cache_.localization_mem->player = Point2D(-750,0);
+  cache_.localization_mem->player = Point2D(-750,0);
   cache_.localization_mem->state = decltype(cache_.localization_mem->state)::Zero();
   cache_.localization_mem->covariance = decltype(cache_.localization_mem->covariance)::Identity();
 }
@@ -93,11 +96,11 @@ void LocalizationModule::processFrame() {
   // Process the current frame and retrieve our location/orientation estimate
   // from the particle filter
   pfilter_->processFrame();
-  self.loc = pfilter_->pose().translation;
-  self.orientation = pfilter_->pose().rotation;
+//  self.loc = pfilter_->pose().translation;
+//  self.orientation = pfilter_->pose().rotation;
   log(40, "Localization Update: x=%2.f, y=%2.f, theta=%2.2f", self.loc.x, self.loc.y, self.orientation * RAD_T_DEG);
-//  auto sloc = cache_.localization_mem->player;
-//  self.loc = sloc;    
+  auto sloc = cache_.localization_mem->player;
+  self.loc = sloc;    
 
   //TODO: modify this block to use your Kalman filter implementation
   if(ball.seen) {
@@ -123,7 +126,7 @@ void LocalizationModule::processFrame() {
    // ball.bearing = ball.visionBearing;
     ball.bearing = atan(ball.loc.y/ball.loc.x);
     ball.absVel = Vector2D(ballState[2] + ballState[4] * 3, ballState[3] + ballState[5] * 3);
-
+    // std::cout<<"velcoity --- "<<ball.absVel.x<<" "<<ball.absVel.y<<endl;
     // Update the localization memory objects with localization calculations
     // so that they are drawn in the World window
     cache_.localization_mem->state[0] = ball.loc.x;
@@ -132,7 +135,8 @@ void LocalizationModule::processFrame() {
   } 
   //TODO: How do we handle not seeing the ball?
   else {
-    timesUnseen = timesUnseen + 1;    
+    timesUnseen = timesUnseen + 1; 
+    std::cout<<"NOT SEEN"<<endl;   
     if (timesUnseen > 10) {
       ball.distance = 10000.0f;
       ball.bearing = 0.0f;
