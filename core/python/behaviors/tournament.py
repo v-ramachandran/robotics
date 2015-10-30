@@ -193,11 +193,11 @@ class BlockingCenter(StateMachine):
       self.finish()
     
   def setup(self):
-    self.trans(pose.PoseSequence(cfgpose.blockcenter2, 0.6), C, pose.PoseSequence(cfgpose.blockcenter2, 2.0), T(4.0), pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
+    self.trans(pose.PoseSequence(cfgpose.blockcenter2, 0.5), C, pose.PoseSequence(cfgpose.blockcenter2, 2.0), T(3.0), pose.PoseSequence(cfgpose.sittingPoseV3, 1.0))
 #    self.trans(pose.Squat(), T(3.0), self.PerformLogistics(), C, pose.Stand())
 
 class Set(LoopingStateMachine):
-  def setup(self):
+  def setup(self): 
     blocker = Blocker()
     declare = Declare()
     start_up = StartUp()
@@ -219,6 +219,44 @@ class Playing(StateMachine):
     def run(self):
       memory.speech.say("Starting up Kicker")
       self.postSignal("Kick")
+
+
+  class TargetBeaconTurn(Node):
+    def run(self):
+      ball = mem_objects.world_objects[core.WO_BALL]
+      mypos = mem_objects.world_objects[memory.robot_state.WO_SELF]
+      beacon_pink_yellow = world_objects.getObjPtr(core.WO_BEACON_PINK_YELLOW)
+      beacon_yellow_pink = world_objects.getObjPtr(core.WO_BEACON_YELLOW_PINK)
+      
+      scale = 1
+      if (beacon_pink_yellow.seen and beacon_pink_yellow.visionBearing > 0):
+        scale = -1
+      if (beacon_yellow_pink.seen and beacon_yellow_pink.visionBearing > 0):
+        scale = -1
+      if (beacon_pink_yellow.seen and (abs(beacon_pink_yellow.visionBearing) <= math.pi/48)) or (beacon_yellow_pink.seen and (abs(beacon_yellow_pink.visionBearing) <= math.pi/48)):
+        commands.setWalkVelocity(0,0,0)
+        self.postSignal("DribbleToBeacon")
+      else:
+        if ball.visionDistance > 220:
+          commands.setWalkVelocity(0.45, 0, (ball.visionBearing / (math.pi / 2)))
+        else: 
+          commands.setWalkVelocity(0, scale*0.4, (ball.visionBearing / (math.pi / 2)))
+
+  class DribbleToBeacon(Node):
+    def run(self):
+      ball = mem_objects.world_objects[core.WO_BALL]
+      mypos = mem_objects.world_objects[memory.robot_state.WO_SELF]
+      beacon_pink_yellow = world_objects.getObjPtr(core.WO_BEACON_PINK_YELLOW)
+      beacon_yellow_pink = world_objects.getObjPtr(core.WO_BEACON_YELLOW_PINK)
+      if (beacon_pink_yellow.seen and beacon_pink_yellow.visionDistance < 800) or (beacon_yellow_pink.seen and beacon_yellow_pink.visionDistance < 800):
+        self.postSignal("GoalTurnRight")
+      else:
+        commands.setWalkVelocity(0.45, 0, (ball.visionBearing / (math.pi / 2)))
+        if (beacon_pink_yellow.seen and (abs(beacon_pink_yellow.visionBearing) > math.pi/12)) or (beacon_yellow_pink.seen and (abs(beacon_yellow_pink.visionBearing) > math.pi/12)):
+          commands.setWalkVelocity(0,0,0)          
+          self.postSignal("TargetBeaconTurn")
+      
+  ###############################################################################################
 
   class Stand(Node):
     def run(self):
@@ -273,24 +311,10 @@ class Playing(StateMachine):
       commands.setWalkVelocity(0,0,0)
     
     def __get_min_bound__(self, ball):
-      if ball.visionDistance >= 1000:
-        return 0.525
-      if ball.visionDistance >= 700:
-        return 0.50
-      if ball.visionDistance >= 600:
-        return 0.50
-      if ball.visionDistance >= 500:
-        return 0.50
-      if ball.visionDistance >= 400:
-        return 0.50
-      if ball.visionDistance >= 300:
-        return 0.45
       if ball.visionDistance >= 200:
-        return 0.425
-      elif ball.visionDistance >= 100:
-        return 0.4
+        return 0.3
       else:
-        return 0.35
+        return 0.23
 
     def run(self):
       ball = world_objects.getObjPtr(core.WO_BALL)
@@ -305,7 +329,7 @@ class Playing(StateMachine):
         velocity_x = velocity_x / 1000 
         velocity_x = min(velocity_x, 0.6)
         velocity_x = max(self.__get_min_bound__(ball), velocity_x)
-        velocity_x = self.__get_min_bound__(ball)
+        # velocity_x = self.__get_min_bound__(ball)
         commands.setWalkVelocity(velocity_x, 0, (ball.visionBearing / (math.pi / 2)))
         if self.error_x <= self.threshold:
           self.__reset__()
@@ -321,23 +345,22 @@ class Playing(StateMachine):
   class OrientX(Node):
     def run(self):
       ball = world_objects.getObjPtr(core.WO_BALL)
+      print "DISTANCE", ball.visionDistance
       if ball.seen:
         if (ball.visionDistance > 117):
-          commands.setWalkVelocity(.4,0,(ball.visionBearing / (math.pi / 2)))
+          commands.setWalkVelocity(.25,0,(ball.visionBearing / (math.pi / 2)))
         else:
           commands.setWalkVelocity(0, 0, 0)
           self.postSignal("OrientY")
   
-  ###############################################################################################
-
   class OrientY(Node):
     def run(self):
       ball = world_objects.getObjPtr(core.WO_BALL)
       if ball.seen:
         y_velocity = 0
-        if ball.imageCenterX > 128:
+        if ball.imageCenterX > 129:
           y_velocity = -0.25
-        elif ball.imageCenterX < 124:
+        elif ball.imageCenterX < 123:
           y_velocity = 0.25
         
         if y_velocity != 0:
@@ -345,8 +368,13 @@ class Playing(StateMachine):
         else:
           commands.setWalkVelocity(0,0,0)
           self.postSignal("Kick")
-  
+
   ###############################################################################################
+  
+  class PreReset(Node):
+    def run(self):
+      if self.getTime() > 5.0:
+        self.postSignal("SearchForBall")    
 
   class SearchForBeacon(Node):
     def __init__(self):
@@ -379,6 +407,9 @@ class Playing(StateMachine):
         min_cap = min(max_cap, math.pi / 3)
         self.toPan = min_cap
         commands.setHeadPan(self.toPan, target_time = 0.75)
+
+      if self.getTime() > 10.0:
+        self.postSignal("GoalTurnRight")
     
   ###############################################################################################
 
@@ -392,7 +423,7 @@ class Playing(StateMachine):
         memory.kick_request.setFwdKick()
         commands.setStiffness(cfgstiff.One)
       if self.getFrames() > 10 and not memory.kick_request.kick_running_:
-        self.postSignal("InGoal")
+        self.postSignal("PreReset")
 
   ###############################################################################################
 
@@ -412,16 +443,76 @@ class Playing(StateMachine):
 
       if self.last_goal_bearing and (abs(self.last_goal_bearing) <= math.pi/48):
         commands.setWalkVelocity(0,0,0)
+        self.postSignal("Dribble")
+      else:
+        scale = 1 if self.turn_left else -1
+        if ball.visionDistance > 220:
+          commands.setWalkVelocity(0.3,0,(ball.visionBearing / (math.pi / 2)))
+        else: 
+          commands.setWalkVelocity(0,scale*0.4, (ball.visionBearing / (math.pi / 2)))
+
+  class PreOrient(Node):
+    def __init__(self, turn_left):
+      self.turn_left = turn_left
+      self.last_goal_bearing = None
+      super(self.__class__, self).__init__()
+    
+    def run(self):
+      goal = world_objects.getObjPtr(core.WO_OWN_GOAL)
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      
+      if goal.seen:
+        self.last_goal_bearing = goal.visionBearing
+        self.turn_left = (goal.visionBearing < 0)
+
+      if self.last_goal_bearing and (abs(self.last_goal_bearing) <= math.pi/48):
+        commands.setWalkVelocity(0,0,0)
         self.postSignal("OrientX")
       else:
         scale = 1 if self.turn_left else -1
         if ball.visionDistance > 220:
-          commands.setWalkVelocity(0.4, 0, (ball.visionBearing / (math.pi / 2)))
+          commands.setWalkVelocity(0.3,0,(ball.visionBearing / (math.pi / 2)))
         else: 
-          commands.setWalkVelocity(0, scale*0.4, (ball.visionBearing / (math.pi / 2)))
+          commands.setWalkVelocity(0,scale*0.4, (ball.visionBearing / (math.pi / 2)))
+    
+
+  class Dribble(Node): 
+    def __init__(self):
+      self.goalUnseenTimes = 0
+      self.last_goal_bearing = None
+      super(self.__class__, self).__init__()
+
+    def run(self):
+      ball = world_objects.getObjPtr(core.WO_BALL)
+      goal = world_objects.getObjPtr(core.WO_OWN_GOAL)
+      if ball.seen:
+        commands.setWalkVelocity(0.375, 0, (ball.visionBearing / (math.pi /2)))
+      if goal.seen:
+        self.last_goal_bearing = goal.visionBearing
+        print "goal distance ",goal.visionDistance
+        if goal.visionDistance <= 2000:
+          commands.setWalkVelocity(0,0,0)
+          if self.last_goal_bearing > 0:          
+            self.postSignal("PreOrientRight")
+          else:
+            self.postSignal("PreOrientLeft")
+        if abs(goal.visionBearing) >= math.pi/6:
+          commands.setWalkVelocity(0,0,0)
+          if goal.visionBearing < 0:
+            self.postSignal("GoalTurnLeft")
+          elif goal.visionBearing > 0:
+            self.postSignal("GoalTurnRight")
+      else:
+        self.goalUnseenTimes = self.goalUnseenTimes + 1
+        if self.goalUnseenTimes > 10:
+          if self.last_goal_bearing > 0:
+            self.postSignal("GoalTurnRight")
+          else:
+            self.postSignal("GoalTurnLeft")
 
   def setup(self):
     declare = self.Declare()
+    dribble = self.Dribble()
     stand = self.Stand()
     find_ball = self.SearchForBall()
     ball_walk = self.BallWalk(120, 20, 0.9, 0.2, 0.00075)
@@ -431,6 +522,13 @@ class Playing(StateMachine):
     orient_x = self.OrientX()
     orient_y = self.OrientY()
     kick = self.Kick()
+    pre_orient_left = self.PreOrient(True)    
+    pre_orient_right = self.PreOrient(False)    
+    pre_reset = self.PreReset()    
+
+    target_beacon_turn = self.TargetBeaconTurn()
+    dribble_to_beacon = self.DribbleToBeacon()
+    
 
   #  self.trans(stand, C, declare)
   #  self.trans(declare, S("Kick"), kick)
@@ -445,9 +543,26 @@ class Playing(StateMachine):
     self.trans(find_beacon, S("GoalTurnRight"), goal_turn_right)
     self.trans(find_beacon, S("GoalTurnLeft"), goal_turn_left)
 
+#    self.trans(find_beacon, S("TargetBeaconTurn"), target_beacon_turn)
+#    self.trans(target_beacon_turn, S("DribbleToBeacon"), dribble_to_beacon)
+#    self.trans(dribble_to_beacon, S("GoalTurnRight"), goal_turn_right)
+#    self.trans(dribble_to_beacon, S("TargetBeaconTurn"), target_beacon_turn)
+     
     self.trans(goal_turn_right, S("OrientX"), orient_x)
     self.trans(goal_turn_left, S("OrientX"), orient_x)
 
+    self.trans(goal_turn_right, S("Dribble"), dribble)
+    self.trans(goal_turn_left, S("Dribble"), dribble)
+
+    self.trans(dribble, S("PreOrientLeft"), pre_orient_left)
+    self.trans(dribble, S("PreOrientRight"), pre_orient_right)
+    self.trans(dribble, S("GoalTurnLeft"), goal_turn_left)
+    self.trans(dribble, S("GoalTurnRight"), goal_turn_right)
+
+    self.trans(pre_orient_left, S("OrientX"), orient_x)
+    self.trans(pre_orient_right, S("OrientX"), orient_x)
     self.trans(orient_x, S("OrientY"), orient_y)
     self.trans(orient_y, S("Kick"), kick)
+    #self.trans(kick, S("PreReset"), pre_reset)
+    #self.trans(pre_reset, S("SearchForBall"), find_ball)
 

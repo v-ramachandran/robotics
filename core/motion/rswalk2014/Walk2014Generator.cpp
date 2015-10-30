@@ -531,7 +531,7 @@ JointValues Walk2014Generator::makeJoints(ActionCommand::All* request,
 
    // 7. Sagittal Balance
    filteredGyroY = 0.75*filteredGyroY + 0.25*sensors.sensors[InertialSensor_GyrY];
-   balanceAdjustment = filteredGyroY/25.0f + 0.0174533f;//04533f; //25.0                  // adjust ankle tilt in proportion to filtered gryoY
+   balanceAdjustment = filteredGyroY/25.0f;// + 0.0174533f;//04533f; //25.0                  // adjust ankle tilt in proportion to filtered gryoY
    if (walk2014Option==READY) balanceAdjustment = 0;        // to stop swaying while not walking
 
    // 7.5 Coronal Balance

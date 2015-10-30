@@ -347,7 +347,7 @@ void ImageProcessor::detectGoal() {
   goal->visionBearing = cmatrix_.bearing(p);
   goal->visionElevation = cmatrix_.elevation(p);
   goal->visionDistance = cmatrix_.groundDistance(p);
-
+  std::cout<<"goal distance "<<goal->visionDistance;
   goal->seen = true;
 }
 
@@ -373,10 +373,18 @@ std::vector<TreeNode*> ImageProcessor::getGoalCandidates() {
   return goalNodes;
 }
 
+bool compFunction(struct TreeNode *t1, struct TreeNode *t2){
+  return (t1->numberOfPixels > t2->numberOfPixels);
+}
+
 struct TreeNode* ImageProcessor::getBestGoalCandidate(){
     
   std::vector<struct TreeNode *> goals = getGoalCandidates();
-  for(std::vector<struct TreeNode *>::iterator goal = goals.begin(); goal != goals.end(); ++goal){
+  std::sort(goals.begin(),goals.end(), compFunction);
+  if (goals.size() >= 2) {
+    goals[0]->actAsParent(goals[1]);
+  }
+ /* for(std::vector<struct TreeNode *>::iterator goal = goals.begin(); goal != goals.end(); ++goal){
     float width = (*goal)->bottomright->x - (*goal)->topleft->x;
     float height = (*goal)->bottomright->y - (*goal)->topleft->y;
     float centerX = (*goal)->topleft->x + (width/2);
@@ -387,8 +395,10 @@ struct TreeNode* ImageProcessor::getBestGoalCandidate(){
     if (goalAspectRatioTest(*goal)) {
       return *goal;
     }
+  }*/
+  if (goals.size() > 0) {
+    return goals[0];
   }
-  return NULL;
 }
 
 
