@@ -37,6 +37,78 @@ const CameraMatrix& ImageProcessor::getCameraMatrix(){
   return cmatrix_;
 }
 
+void ImageProcessor::getBlobNodes() {
+  
+  unsigned char* image = getImg();
+  int height = getImageHeight();
+  int width = getImageWidth();
+  std::map<Color,std::map<int,vector<struct TreeNode *>>> colorRowNodeMap;
+  for(std::map<Color, struct DisjointSet>::iterator disjointSet = colorDisjointSets.begin(); disjointSet != colorDisjointSets.end(); ++disjointSet){
+    disjointSet->second.clear();
+  }
+  
+  for(int y=0; y<height; ++y){
+    int rowStart = 0;
+    int rowEnd = 0;
+    Color currentColor = ColorTableMethods::xy2color(image, color_table_, rowStart, rowEnd, width);
+    std::vector<struct TreeNode *> treeNodes ;
+    for(int x=0; x<width; ++x) {
+      Color detectedColor = ColorTableMethods::xy2color(image, color_table_, x, y, width);
+      if ((currentColor != detectedColor || x==width-1) && (x!=0)) {
+        // save old run
+        if ((camera_ == Camera::TOP && (!(currentColor == c_FIELD_GREEN || currentColor == c_UNDEFINED || currentColor == c_ROBOT_WHITE || currentColor == c_WHITE))) || 
+            (camera_ == Camera::BOTTOM && (currentColor == c_ORANGE))) {
+          struct TreeNode* treeNode = colorDisjointSets[currentColor].makeset(y, rowStart, rowEnd, currentColor);
+          colorRowNodeMap[currentColor][y].push_back(treeNode);
+        }
+        // start new run
+        rowStart = x;
+      } 
+      rowEnd = x;
+      currentColor = detectedColor;
+    }
+  }
+
+  for(std::map<Color, struct DisjointSet>::iterator disjointSet = colorDisjointSets.begin(); disjointSet != colorDisjointSets.end(); ++disjointSet){
+    Color color = disjointSet->first; 
+    for(int y=0; y<height-1; ++y) {
+      for(std::vector<struct TreeNode *>::iterator currNodeItem = colorRowNodeMap[color][y].begin(); currNodeItem!= colorRowNodeMap[color][y].end(); ++currNodeItem) { 
+        for(std::vector<struct TreeNode *>::iterator nextNodeItem = colorRowNodeMap[color][y+1].begin(); nextNodeItem!= colorRowNodeMap[color][y+1].end(); ++nextNodeItem) {
+          if ((*currNodeItem)->hasOverlap(*nextNodeItem)) {
+            if ((*nextNodeItem)->hasSelfAsParent()) {
+              disjointSet->second.unionNodes(*currNodeItem, *nextNodeItem);
+              disjointSet->second.find(*nextNodeItem);
+            } else {
+              disjointSet->second.mergeNodes(*currNodeItem, *nextNodeItem);
+            }
+            
+          }
+        }
+      }
+    }
+  
+  }
+   
+   for(std::map<Color, struct DisjointSet>::iterator disjointSet = colorDisjointSets.begin(); disjointSet != colorDisjointSets.end(); ++disjointSet){
+     Color color = disjointSet->first;
+     struct DisjointSet colorDisjointSet = disjointSet->second;
+     for(int y=0; y<height-1; ++y) {
+       for(std::vector<struct TreeNode *>::iterator currNodeItem = colorRowNodeMap[color][y].begin(); currNodeItem!= colorRowNodeMap[color][y].end(); ++currNodeItem) { 
+         int height = (*currNodeItem)->bottomright->y - (*currNodeItem)->topleft->y;
+         int width = (*currNodeItem)->bottomright->x - (*currNodeItem)->topleft->x;
+         if(colorDisjointSet.rootSet.find(*currNodeItem) == colorDisjointSet.rootSet.end()){
+           
+           delete (*currNodeItem); 
+         } else if (height <= 3 || width <= 3) {
+           colorDisjointSet.rootSet.erase(*currNodeItem);
+           //delete (*currNodeItem);
+         }
+       }
+     }
+   }
+}
+
+
 void ImageProcessor::updateTransform(){
   BodyPart::Part camera;
   if(camera_ == Camera::TOP)

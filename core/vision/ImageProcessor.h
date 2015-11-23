@@ -11,7 +11,9 @@
 #include <vision/Classifier.h>
 #include <common/RobotCalibration.h>
 #include <vision/structures/BallCandidate.h>
+#include <vision/structures/TreeNode.h>
 #include <math/Pose3D.h>
+#include <cmath>
 
 class BeaconDetector;
 
@@ -27,6 +29,7 @@ class ImageProcessor {
     unsigned char* getImg();
     unsigned char* getSegImg();
     unsigned char* getColorTable();
+    void getBlobNodes();
     bool isRawImageLoaded();
     int getImageHeight();
     int getImageWidth();
@@ -56,6 +59,8 @@ class ImageProcessor {
     float getHeadPan() const;
     float getHeadTilt() const;
     float getHeadChange() const;
+
+    std::map<Color, struct DisjointSet> colorDisjointSets;
 
     RobotCalibration* calibration_;
     bool enableCalibration_;
