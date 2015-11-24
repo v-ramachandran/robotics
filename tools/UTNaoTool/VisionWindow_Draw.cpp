@@ -218,6 +218,11 @@ void VisionWindow::drawSegmentedImage(ImageWidget *image) {
     drawHorizonLine(image);
 }
 
+void VisionWindow::drawEdgeLine(ImageWidget* image){
+
+
+}
+
 void VisionWindow::drawBall(ImageWidget* image) {
   QPainter painter(image->getImage());
   painter.setPen(QPen(QColor(0, 255, 127), 3));

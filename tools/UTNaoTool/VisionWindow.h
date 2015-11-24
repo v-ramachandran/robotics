@@ -117,6 +117,7 @@ public:
   ~VisionWindow();
 
   void update(Memory* memory);
+  void drawEdgeLine(ImageWidget* image);
   void drawBallCands(ImageWidget* image);
   void drawBall(ImageWidget* image);
   void drawWorldObject(ImageWidget* image, QColor color, int worldObjectID);
