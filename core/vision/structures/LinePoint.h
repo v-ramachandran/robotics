@@ -4,7 +4,8 @@
 /// @ingroup vision
 struct LinePoint {
   unsigned short Width;
-  float PosX, PosY;
+  float PosX, PosY; 
+	int y, u, v;
 };
 
 #endif
