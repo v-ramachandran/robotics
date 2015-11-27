@@ -10,7 +10,7 @@ void LineDetector::findLinePointCandidates(ImageProcessor * processor){
   int height = processor->getImageHeight();
   int width = processor->getImageWidth();
 	int threshold = 1;
-	int currentItensity = 0;
+	int currentIntensity = 0;
   for(int y=0; y<height; ++y){
     if(y%5==0){
       for(int x=0; x<width; ++x){
