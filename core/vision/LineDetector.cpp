@@ -1,8 +1,8 @@
 #include <vision/BeaconDetector.h>
 #include <memory/TextLogger.h>
 
-LineDetector::LineDetector(DETECTOR_DECLARE_ARGS) : DETECTOR_INITIALIZE {
-}
+//LineDetector::LineDetector(DETECTOR_DECLARE_ARGS) : DETECTOR_INITIALIZE {
+//}
 
 void findLinePointCandidates(ImageProcessor * processor){
  	unsigned char * image = processor->getImg();
