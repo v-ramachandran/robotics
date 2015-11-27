@@ -40,6 +40,4 @@ void LineDetector::findLinePointCandidates(ImageProcessor * processor){
 
   
 }
-void LineDetector::findLine(ImageProcessor * processor){
- ;
-}
+
