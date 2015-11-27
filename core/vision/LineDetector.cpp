@@ -9,7 +9,8 @@ void LineDetector::findLinePointCandidates(ImageProcessor * processor){
   unsigned char * color_table_ = processor->getColorTable();
   int height = processor->getImageHeight();
   int width = processor->getImageWidth();
-	int threshold =0;
+	int threshold = 1;
+	int currentItensity = 0;
   for(int y=0; y<height; ++y){
     if(y%5==0){
       for(int x=0; x<width; ++x){
@@ -18,10 +19,12 @@ void LineDetector::findLinePointCandidates(ImageProcessor * processor){
 				point.PosX = x;
 				point.PosY = y;
         Color currentColor = ColorTableMethods::xy2color(image, color_table_, x, y, width);
-				if(y>threshold){
-				
-					linePoints.push_back(point);
-				}					 
+				if(x-1>=0){
+					if(abs(point.y - currentIntensity)>threshold){
+						linePoints.push_back(point);
+					}
+				}
+				currentIntensity = point.y;					 
       }
     }
     else{
@@ -31,10 +34,12 @@ void LineDetector::findLinePointCandidates(ImageProcessor * processor){
 				point.PosX = x;
 				point.PosY = y;
         Color currentColor = ColorTableMethods::xy2color(image, color_table_, x, y, processor->getImageWidth());
-				if(y>threshold){
-						
-						linePoints.push_back(point);
+				if(x-5>=0){
+					if(abs(point.y - currentIntensity)>threshold){
+							linePoints.push_back(point);
+					}
 				}
+				currentIntensity = point.y;
     	}
   	}
 
