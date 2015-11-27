@@ -1,4 +1,4 @@
-#include <vision/BeaconDetector.h>
+#include <vision/LineDetector.h>
 #include <memory/TextLogger.h>
 
 //LineDetector::LineDetector(DETECTOR_DECLARE_ARGS) : DETECTOR_INITIALIZE {
