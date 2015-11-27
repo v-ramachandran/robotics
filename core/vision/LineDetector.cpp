@@ -4,7 +4,7 @@
 //LineDetector::LineDetector(DETECTOR_DECLARE_ARGS) : DETECTOR_INITIALIZE {
 //}
 
-void findLinePointCandidates(ImageProcessor * processor){
+void LineDetector::findLinePointCandidates(ImageProcessor * processor){
  	unsigned char * image = processor->getImg();
   unsigned char * color_table_ = processor->getColorTable();
   int height = processor->getImageHeight();
