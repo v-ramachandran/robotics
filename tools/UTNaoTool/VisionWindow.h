@@ -17,6 +17,8 @@
 #include <vision/VisionModule.h>
 #include <vision/ColorTableMethods.h>
 #include <vision/structures/BallCandidate.h>
+#include <vision/structures/LinePoint.h>
+#include <vision/LineDetector.h>
 
 #include <vision/structures/Sample.h>
 

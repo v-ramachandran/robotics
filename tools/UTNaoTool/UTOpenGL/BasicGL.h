@@ -23,6 +23,11 @@ class BasicGL {
 public:
   BasicGL();
 
+  // Point drawing
+  void drawPoint(Point2D p);
+  void drawPoint(Point2D p, double z);
+  void drawPoint(Vector3<float> x);
+
   // Line drawing
   void drawLine(Point2D p1, Point2D p2);
   void drawLine(Point2D p1, Point2D p2, double z);

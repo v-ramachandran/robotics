@@ -16,6 +16,7 @@
 #include <cmath>
 
 class BeaconDetector;
+class LineDetector;
 
 /// @ingroup vision
 class ImageProcessor {
@@ -27,6 +28,7 @@ class ImageProcessor {
     void SetColorTable(unsigned char*);
     Classifier* classifier_;
     unsigned char* getImg();
+    LineDetector* getLineDetector();
     unsigned char* getSegImg();
     unsigned char* getColorTable();
     void getBlobNodes();
@@ -65,6 +67,7 @@ class ImageProcessor {
     RobotCalibration* calibration_;
     bool enableCalibration_;
     BeaconDetector* beacon_detector_;
+    LineDetector* line_detector_;
 };
 
 #endif

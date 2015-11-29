@@ -1,5 +1,6 @@
 #include <vision/ImageProcessor.h>
 #include <vision/BeaconDetector.h>
+#include <vision/LineDetector.h>
 #include <iostream>
 
 ImageProcessor::ImageProcessor(VisionBlocks& vblocks, const ImageParams& iparams, Camera::Type camera) :
@@ -8,6 +9,7 @@ ImageProcessor::ImageProcessor(VisionBlocks& vblocks, const ImageParams& iparams
   enableCalibration_ = false;
   classifier_ = new Classifier(vblocks_, vparams_, iparams_, camera_);
   beacon_detector_ = new BeaconDetector(DETECTOR_PASS_ARGS);
+  line_detector_ = new LineDetector(DETECTOR_PASS_ARGS);
 }
 
 void ImageProcessor::init(TextLogger* tl){
@@ -15,6 +17,11 @@ void ImageProcessor::init(TextLogger* tl){
   vparams_.init();
   classifier_->init(tl);
   beacon_detector_->init(tl);
+  line_detector_->init(tl);
+}
+
+LineDetector* ImageProcessor::getLineDetector() {
+  return line_detector_;
 }
 
 unsigned char* ImageProcessor::getImg() {
@@ -183,6 +190,7 @@ void ImageProcessor::processFrame(){
   if(!classifier_->classifyImage(color_table_)) return;
   detectBall();
   beacon_detector_->findBeacons(colorDisjointSets,this);
+  line_detector_->findLinePointCandidates(this);
 }
 
 void ImageProcessor::detectBall() {

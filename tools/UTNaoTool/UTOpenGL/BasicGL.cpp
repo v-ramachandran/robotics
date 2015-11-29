@@ -36,6 +36,20 @@ void BasicGL::drawCone(Point2D start, Point2D end, float z, float radius) {
   drawCylinder(start.x, start.y, z, end.x, end.y, z, radius, 0);
 }
 
+void BasicGL::drawPoint(Point2D p){
+  drawPoint(p,0);
+}
+
+void BasicGL::drawPoint(Point2D p, double z){
+  drawPoint(Vector3<float>(p.x,p.y,z));
+}
+
+void BasicGL::drawPoint(Vector3<float> x){
+  glBegin(GL_POINT); 
+  glVertex3f ((x.x/FACT),(x.y/FACT),(x.z/FACT)); 
+  glEnd();
+}
+
 void BasicGL::drawLine(Point2D p1, Point2D p2) {
   drawLine(p1,p2,0);
 }

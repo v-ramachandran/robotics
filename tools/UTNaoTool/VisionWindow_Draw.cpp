@@ -87,6 +87,7 @@ void VisionWindow::redrawImages(ImageWidget* rawImage, ImageWidget* segImage, Im
 
   objImage->fill(0);
   drawBall(objImage);
+  drawEdgeLine(objImage);
 
   if(horizonCheck->isChecked()) {
     drawHorizonLine(rawImage);
@@ -219,8 +220,15 @@ void VisionWindow::drawSegmentedImage(ImageWidget *image) {
 }
 
 void VisionWindow::drawEdgeLine(ImageWidget* image){
+  QPainter painter(image->getImage());
+  painter.setPen(QPen(QColor(0, 255, 127), 1));
+  ImageProcessor* processor = getImageProcessor(image);
+  int height = processor->getImageHeight();
+  int width = processor->getImageWidth();
 
-
+  for (auto linePoint : processor->getLineDetector()->linePoints) {
+     painter.drawPoint(QPointF(linePoint->PosX,linePoint->PosY));
+  }
 }
 
 void VisionWindow::drawBall(ImageWidget* image) {

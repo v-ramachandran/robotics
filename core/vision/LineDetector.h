@@ -14,9 +14,8 @@ class TextLogger;
 /// @ingroup vision
 class LineDetector : public ObjectDetector {
  public:
-	vector<LinePoint> linePoints; 	
-
- // LineDetector(DETECTOR_DECLARE_ARGS);
+  LineDetector(DETECTOR_DECLARE_ARGS);
+	vector<LinePoint*> linePoints; 	
   void init(TextLogger* tl){ textlogger = tl; }
   void findLine(ImageProcessor * processor);
   void findLinePointCandidates(ImageProcessor * processor);
