@@ -45,7 +45,7 @@ class ParticleFilter {
     int yMin = -125;
     int yMax = 125;
     int numParticles= 1000;
-    int noiseParticles = 1;
+    int noiseParticles = 0;
     float alphaFast = 0.5;
     float alphaSlow = 0.005;
     float wSlow = 0.0;
