@@ -269,18 +269,19 @@ const Pose2D& ParticleFilter::pose() const {
     // Compute the mean pose estimate
     mean_ = Pose2D();
     using T = decltype(mean_.translation);
-    for(const auto& p : particles()) {
+ /*   for(const auto& p : particles()) {
       mean_.translation += T(p.x,p.y);
       mean_.rotation += p.t;
     }
     
     if(particles().size() > 0)
-      mean_ /= particles().size();
-	/*	Particle clusterCentroid = kMeans();
+      mean_ /= particles().size();*/
+		Particle clusterCentroid = kMeans();
 		mean_.translation = T(clusterCentroid.x, clusterCentroid.y);
 		mean_.rotation = clusterCentroid.t;		
-    cout<<mean_.rotation<<endl;*/
+    cout<<mean_.rotation<<endl;
     dirty_ = false;
   }
   return mean_;
 }
+
