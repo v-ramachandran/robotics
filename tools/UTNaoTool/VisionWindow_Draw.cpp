@@ -99,10 +99,12 @@ void VisionWindow::redrawImages(ImageWidget* rawImage, ImageWidget* segImage, Im
   // if overlay is on, then draw objects on the raw and seg image as well
   if (overlayCheck->isChecked()) {
     drawBall(rawImage);
+    drawEdgeLine(rawImage);
     drawBallCands(rawImage);
     drawBeacons(rawImage);
 
     drawBall(segImage);
+    drawEdgeLine(segImage);
     drawBallCands(segImage);
     drawBeacons(segImage);
   }
@@ -221,11 +223,10 @@ void VisionWindow::drawSegmentedImage(ImageWidget *image) {
 
 void VisionWindow::drawEdgeLine(ImageWidget* image){
   QPainter painter(image->getImage());
-  painter.setPen(QPen(QColor(0, 255, 127), 1));
+  painter.setPen(QPen(QColor(200, 0, 0), 1));
   ImageProcessor* processor = getImageProcessor(image);
   int height = processor->getImageHeight();
   int width = processor->getImageWidth();
-
   for (auto linePoint : processor->getLineDetector()->linePoints) {
      painter.drawPoint(QPointF(linePoint->PosX,linePoint->PosY));
   }
