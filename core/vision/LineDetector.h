@@ -6,6 +6,7 @@
 #include <vision/enums/Colors.h>
 #include <vision/ColorTableMethods.h>
 #include <vision/structures/LinePoint.h>
+#include <vision/BoundaryLineMethods.h>
 #include <algorithm>
 #include <iostream>
 

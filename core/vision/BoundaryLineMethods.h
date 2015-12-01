@@ -5,7 +5,7 @@
 #include <cmath>
 #include <math/Pose2D.h>
 
-class ColorTableMethods {
+class BoundaryLineMethods {
   public:
 		static const int ERROR = 100;
     static inline bool isOnBoundary(Point2D position) {
