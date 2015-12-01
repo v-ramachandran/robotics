@@ -13,7 +13,7 @@ void LineDetector::findLinePointCandidates(ImageProcessor * processor){
     delete (*it);
   } 
   linePoints.clear();
- 	unsigned char * image = processor->getImg();
+  unsigned char * image = processor->getImg();
   unsigned char * color_table_ = processor->getColorTable();
   int height = processor->getImageHeight();
   int width = processor->getImageWidth();

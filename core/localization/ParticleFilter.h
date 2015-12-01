@@ -5,6 +5,7 @@
 #include <random>
 #include <cmath>
 #include <map>
+#include <queue>
 #include <math/Pose2D.h>
 #include <common/Random.h>
 #include <memory/MemoryCache.h>
@@ -45,11 +46,21 @@ class ParticleFilter {
     int yMin = -125;
     int yMax = 125;
     int numParticles= 1000;
+    float noiseParticlesProportion = 0.01;
     int noiseParticles = 0;
-    float alphaFast = 0.5;
-    float alphaSlow = 0.005;
+    float alphaFast = 0.9;
+    float alphaSlow = 0.003;
     float wSlow = 0.0;
     float wFast = 0.0;
+
+    std::queue<int> qualityHistory;
+    int historySize = 20;
+    int cooldownPeriod = 10;
+    int currentPeriod = 0;
+    int qualityThreshold = 150000;
+    int poorQualityCount = 0;    
+    int poorQualityThreshold = 16;
+    bool addedNoise = true;
     std::vector<int> particleIndices;
     mutable Pose2D mean_;
     mutable bool dirty_;
