@@ -26,6 +26,7 @@ WorldObject::WorldObject() {
   imageCenterY=0;
   fieldLineIndex = -1;
   fromTopCamera = false;
+  boundarySegment = BoundarySegment();
 }
 
 WorldObject::~WorldObject() {

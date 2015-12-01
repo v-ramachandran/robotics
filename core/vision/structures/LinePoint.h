@@ -5,7 +5,9 @@
 struct LinePoint {
   unsigned short Width;
   float PosX, PosY; 
-	int y, u, v;
+  float globalPosX, globalPosY;
+  float distance;
+  int y, u, v;
 };
 
 #endif

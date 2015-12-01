@@ -122,6 +122,10 @@ ENUM(WorldObjectType,   // Types of objects
   WO_OWN_LEFT_GOALBAR,
   WO_OWN_RIGHT_GOALBAR,
 
+  // Boundary segment
+  WO_TOP_BOUNDARY_SEGMENT,
+  WO_BOTTOM_BOUNDARY_SEGMENT,
+
   // penalty crosses
   WO_UNKNOWN_PENALTY_CROSS,
   WO_OWN_PENALTY_CROSS,
@@ -258,6 +262,9 @@ public:
   Point2D visionPt2; ///< For lines, the second seen point.
   LineSegment visionLine; ///< For lines, the line segment.
 
+  // for boundary lines
+  BoundarySegment boundarySegment;
+  
   // heights of beacons/goals/etc in the world
   float lowerHeight; ///< The height of the lower part of this object.
   float upperHeight; ///< The height of the upper part of this object.

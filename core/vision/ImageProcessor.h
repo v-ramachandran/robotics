@@ -33,6 +33,7 @@ class ImageProcessor {
     unsigned char* getColorTable();
     void getBlobNodes();
     bool isRawImageLoaded();
+    bool isTopCamera();
     int getImageHeight();
     int getImageWidth();
     const ImageParams& getImageParams() const { return iparams_; }

@@ -221,17 +221,6 @@ void VisionWindow::drawSegmentedImage(ImageWidget *image) {
     drawHorizonLine(image);
 }
 
-void VisionWindow::drawEdgeLine(ImageWidget* image){
-  QPainter painter(image->getImage());
-  painter.setPen(QPen(QColor(200, 0, 0), 1));
-  ImageProcessor* processor = getImageProcessor(image);
-  int height = processor->getImageHeight();
-  int width = processor->getImageWidth();
-  for (auto linePoint : processor->getLineDetector()->linePoints) {
-     painter.drawPoint(QPointF(linePoint->PosX,linePoint->PosY));
-  }
-}
-
 void VisionWindow::drawBall(ImageWidget* image) {
   QPainter painter(image->getImage());
   painter.setPen(QPen(QColor(0, 255, 127), 3));
@@ -253,6 +242,31 @@ void VisionWindow::drawBall(ImageWidget* image) {
         (!ball->fromTopCamera && _widgetAssignments[image] == IMAGE_TOP) ) return;
     int radius = ball->radius;
     painter.drawEllipse(ball->imageCenterX - radius, ball->imageCenterY - radius, radius * 2, radius * 2);
+  }
+}
+
+void VisionWindow::drawEdgeLine(ImageWidget* image){
+  QPainter painter(image->getImage());
+  painter.setPen(QPen(QColor(200, 0, 0), 1));
+  
+  if (world_object_block_ != NULL) {
+    WorldObject* topBoundarySegment = &world_object_block_->objects_[WO_TOP_BOUNDARY_SEGMENT];
+    if (topBoundarySegment->seen) {
+      for (auto linePoint : topBoundarySegment->boundarySegment.linePoints) {
+         painter.drawPoint(QPointF(linePoint.PosX,linePoint.PosY));
+      }
+    }
+    WorldObject* bottomBoundarySegment = &world_object_block_->objects_[WO_BOTTOM_BOUNDARY_SEGMENT];
+    if (bottomBoundarySegment->seen) {
+      for (auto linePoint : topBoundarySegment->boundarySegment.linePoints) {
+         painter.drawPoint(QPointF(linePoint.PosX,linePoint.PosY));
+      }
+    }
+  } else {
+    ImageProcessor* processor = getImageProcessor(image);
+    for (auto linePoint : processor->getLineDetector()->linePoints) {
+       painter.drawPoint(QPointF(linePoint->PosX,linePoint->PosY));
+    }
   }
 }
 

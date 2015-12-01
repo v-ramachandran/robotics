@@ -153,6 +153,10 @@ void ImageProcessor::updateTransform(){
   cmatrix_.updateCameraPose(pcamera);
 }
 
+bool ImageProcessor::isTopCamera() {
+  return (camera_ == Camera::TOP);
+}
+
 bool ImageProcessor::isRawImageLoaded() {
   if(camera_ == Camera::TOP)
     return vblocks_.image->img_top_;
