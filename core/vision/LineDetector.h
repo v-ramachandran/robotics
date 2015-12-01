@@ -21,4 +21,6 @@ class LineDetector : public ObjectDetector {
   void findLinePointCandidates(ImageProcessor * processor);
  private:
   TextLogger* textlogger;
+ protected:
+	MemoryCache cache_;
 };

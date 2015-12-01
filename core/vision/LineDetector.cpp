@@ -50,13 +50,19 @@ void LineDetector::findLinePointCandidates(ImageProcessor * processor){
 
       // Add point if passes threshold
       if (abs(currentY - comparisonY) > threshold && color == c_FIELD_GREEN) {
-	      LinePoint *point = new LinePoint();
-        point->y = currentY;
-        point->u = currentU;
-        point->v = currentV;
-	      point->PosX = x;
-	      point->PosY = y;
-        linePoints.push_back(point);
+				
+				// Calculate the global position of the edge pixel
+				auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
+				auto globalPosition = Point2D(x,y).relativeToGlobal(self.loc, self.orientation);
+				if (BoundaryLineMethods::isOnBoundary(globalPosition)) { 
+			    LinePoint *point = new LinePoint();
+		      point->y = currentY;
+		      point->u = currentU;
+		      point->v = currentV;
+			    point->PosX = x;
+			    point->PosY = y;
+		      linePoints.push_back(point);
+				}
       }
     }
   }
