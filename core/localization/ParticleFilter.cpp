@@ -271,7 +271,7 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
 
   // Copy sampled particles back
   for(int index = 0; index < (numParticles-noiseParticles); index++) {
-    particles()[index] = resampledParticles[index];
+		particles()[index] = resampledParticles[index];
   }
 
   float y = mean_.y;
