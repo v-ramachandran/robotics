@@ -73,6 +73,7 @@ void VisionWindow::updateBigImage() {
     if (overlayCheck->isChecked()) {
       drawBall(bigImage);
       drawBallCands(bigImage);
+      drawEdgeLine(bigImage);
       drawBeacons(bigImage);
     }
   }
@@ -245,28 +246,34 @@ void VisionWindow::drawBall(ImageWidget* image) {
   }
 }
 
-void VisionWindow::drawEdgeLine(ImageWidget* image){
-  QPainter painter(image->getImage());
-  painter.setPen(QPen(QColor(200, 0, 0), 1));
-  
+void VisionWindow::drawEdgeLine(ImageWidget* image){  
+
+/**
   if (world_object_block_ != NULL) {
+    QPainter painter(image->getImage());
+    painter.setPen(QPen(QColor(200, 0, 0), 1));
     WorldObject* topBoundarySegment = &world_object_block_->objects_[WO_TOP_BOUNDARY_SEGMENT];
-    if (topBoundarySegment->seen) {
+    if (topBoundarySegment->seen && _widgetAssignments[image] == IMAGE_TOP) {
       for (auto linePoint : topBoundarySegment->boundarySegment.linePoints) {
          painter.drawPoint(QPointF(linePoint.PosX,linePoint.PosY));
       }
     }
     WorldObject* bottomBoundarySegment = &world_object_block_->objects_[WO_BOTTOM_BOUNDARY_SEGMENT];
-    if (bottomBoundarySegment->seen) {
-      for (auto linePoint : topBoundarySegment->boundarySegment.linePoints) {
+    if (bottomBoundarySegment->seen && _widgetAssignments[image] == IMAGE_BOTTOM) {
+      for (auto linePoint : bottomBoundarySegment->boundarySegment.linePoints) {
          painter.drawPoint(QPointF(linePoint.PosX,linePoint.PosY));
       }
     }
-  } else {
-    ImageProcessor* processor = getImageProcessor(image);
-    for (auto linePoint : processor->getLineDetector()->linePoints) {
-       painter.drawPoint(QPointF(linePoint->PosX,linePoint->PosY));
+  } **/
+  QPainter painter(image->getImage());
+  ImageProcessor* processor = getImageProcessor(image);
+  for (auto linePoint : processor->getLineDetector()->linePoints) {
+    if (linePoint->isFalsePositive) {
+      painter.setPen(QPen(QColor(0, 255, 255), 1));
+    } else {
+      painter.setPen(QPen(QColor(255, 0, 255), 1));
     }
+    painter.drawPoint(QPointF(linePoint->PosX,linePoint->PosY));
   }
 }
 

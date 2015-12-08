@@ -80,10 +80,12 @@ void LocalizationModule::movePlayer(const Point2D& position, float orientation) 
 void LocalizationModule::processFrame() {
   auto& ball = cache_.world_object->objects_[WO_BALL];
   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
-
+//  self.loc= Point2D(0,0);
+//  self.orientation= 0;
   // Process the current frame and retrieve our location/orientation estimate
   // from the particle filter
-  pfilter_->processFrame();
+ 
+ pfilter_->processFrame();
   self.loc = pfilter_->pose().translation;
   self.orientation = pfilter_->pose().rotation;
   log(40, "Localization Update: x=%2.f, y=%2.f, theta=%2.2f", self.loc.x, self.loc.y, self.orientation * RAD_T_DEG);

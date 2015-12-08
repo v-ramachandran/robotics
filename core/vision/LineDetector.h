@@ -8,6 +8,7 @@
 #include <vision/structures/LinePoint.h>
 #include <vision/structures/BoundarySegment.h>
 #include <vision/BoundaryLineMethods.h>
+#include <math/Pose3D.h>
 #include <algorithm>
 #include <iostream>
 
@@ -20,9 +21,9 @@ class LineDetector : public ObjectDetector {
 	vector<LinePoint*> linePoints; 	
   void init(TextLogger* tl){ textlogger = tl; }
   void findLine(ImageProcessor * processor);
-  void findLinePointCandidates(ImageProcessor * processor);
+  void findLinePointCandidates(ImageProcessor* processor);
+  void resetBoundarySegments(ImageProcessor* processor);
  private:
   TextLogger* textlogger;
- protected:
-	MemoryCache cache_;
+
 };

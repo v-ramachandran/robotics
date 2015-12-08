@@ -1,6 +1,7 @@
 #include <vision/ImageProcessor.h>
 #include <vision/BeaconDetector.h>
 #include <vision/LineDetector.h>
+#include <stdexcept>
 #include <iostream>
 
 ImageProcessor::ImageProcessor(VisionBlocks& vblocks, const ImageParams& iparams, Camera::Type camera) :
@@ -20,14 +21,14 @@ void ImageProcessor::init(TextLogger* tl){
   line_detector_->init(tl);
 }
 
-LineDetector* ImageProcessor::getLineDetector() {
-  return line_detector_;
-}
-
 unsigned char* ImageProcessor::getImg() {
   if(camera_ == Camera::TOP)
     return vblocks_.image->getImgTop();
   return vblocks_.image->getImgBottom();
+}
+
+LineDetector* ImageProcessor::getLineDetector() {
+  return line_detector_;
 }
 
 unsigned char* ImageProcessor::getSegImg(){
@@ -42,6 +43,127 @@ unsigned char* ImageProcessor::getColorTable(){
 
 const CameraMatrix& ImageProcessor::getCameraMatrix(){
   return cmatrix_;
+}
+
+void ImageProcessor::updateTransform(){
+  BodyPart::Part camera;
+  if(camera_ == Camera::TOP)
+    camera = BodyPart::top_camera;
+  else
+    camera = BodyPart::bottom_camera;
+
+  Pose3D pcamera;
+  if(enableCalibration_) {
+    float joints[NUM_JOINTS], sensors[NUM_SENSORS], dimensions[RobotDimensions::NUM_DIMENSIONS];
+    memcpy(joints, vblocks_.joint->values_, NUM_JOINTS * sizeof(float));
+    memcpy(sensors, vblocks_.sensor->values_, NUM_SENSORS * sizeof(float));
+    memcpy(dimensions, vblocks_.robot_info->dimensions_.values_, RobotDimensions::NUM_DIMENSIONS * sizeof(float));
+    Pose3D *rel_parts = vblocks_.body_model->rel_parts_, *abs_parts = vblocks_.body_model->abs_parts_;
+    calibration_->applyJoints(joints);
+    calibration_->applySensors(sensors);
+    calibration_->applyDimensions(dimensions);
+    ForwardKinematics::calculateRelativePose(joints, rel_parts, dimensions);
+#ifdef TOOL
+    Pose3D base = ForwardKinematics::calculateVirtualBase(calibration_->useLeft, rel_parts);
+    ForwardKinematics::calculateAbsolutePose(base, rel_parts, abs_parts);
+#else
+    ForwardKinematics::calculateAbsolutePose(sensors, rel_parts, abs_parts);
+#endif
+    cmatrix_.setCalibration(*calibration_);
+    pcamera = abs_parts[camera];
+  }
+  else pcamera = vblocks_.body_model->abs_parts_[camera];
+
+  if(vblocks_.robot_state->WO_SELF == WO_TEAM_COACH) {
+    auto self = vblocks_.world_object->objects_[vblocks_.robot_state->WO_SELF];
+    pcamera.translation.z += self.height;
+  }
+
+  cmatrix_.updateCameraPose(pcamera);
+}
+
+bool ImageProcessor::isRawImageLoaded() {
+  if(camera_ == Camera::TOP)
+    return vblocks_.image->img_top_;
+  return vblocks_.image->img_bottom_;
+}
+
+int ImageProcessor::getImageHeight() {
+  return iparams_.height;
+}
+
+int ImageProcessor::getImageWidth() {
+  return iparams_.width;
+}
+
+double ImageProcessor::getCurrentTime() {
+  return vblocks_.frame_info->seconds_since_start;
+}
+
+void ImageProcessor::setCalibration(RobotCalibration calibration){
+  if(calibration_) delete calibration_;
+  calibration_ = new RobotCalibration(calibration);
+}
+
+bool ImageProcessor::isTopCamera() {
+  return (camera_ == Camera::TOP);
+}
+
+void ImageProcessor::processFrame(){
+  if(vblocks_.robot_state->WO_SELF == WO_TEAM_COACH && camera_ == Camera::BOTTOM) return;
+  visionLog(30, "Process Frame camera %i", camera_);
+
+  updateTransform();
+  
+  // Horizon calculation
+  visionLog(30, "Calculating horizon line");
+  HorizonLine horizon = HorizonLine::generate(iparams_, cmatrix_, 30000);
+  vblocks_.robot_vision->horizon = horizon;
+  visionLog(30, "Classifying Image", camera_);
+  if(!classifier_->classifyImage(color_table_)) return;
+  getBlobNodes();
+  // detectBall();
+  // detectGoal();
+  beacon_detector_->findBeacons(colorDisjointSets, this);
+  line_detector_->findLinePointCandidates(this);
+}
+
+void ImageProcessor::detectBall() {
+
+  BallCandidate* ballCandidate = getBestBallCandidate();
+  if(!ballCandidate) return; // function defined elsewhere that fills in imageX, imageY by reference
+  WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
+
+  int imageX = ballCandidate->centerX;
+  int imageY = ballCandidate->centerY;
+  ball->imageCenterX = imageX;
+  ball->imageCenterY = imageY;
+  ball->radius = ballCandidate->radius;
+
+  Position p = cmatrix_.getWorldPosition(imageX, imageY);
+  ball->visionBearing = cmatrix_.bearing(p);
+  ball->visionElevation = cmatrix_.elevation(p);
+  ball->visionDistance = cmatrix_.groundDistance(p);
+
+  ball->seen = true;
+}
+
+void ImageProcessor::findBall(int& imageX, int& imageY) {
+  imageX = imageY = 0;
+}
+
+int ImageProcessor::getTeamColor() {
+  return vblocks_.robot_state->team_;
+}
+
+void ImageProcessor::SetColorTable(unsigned char* table) {
+  color_table_ = table;
+}
+
+float ImageProcessor::getHeadChange() const {
+  if (vblocks_.joint == NULL)
+    return 0;
+  return vblocks_.joint->getJointDelta(HeadPan);
 }
 
 void ImageProcessor::getBlobNodes() {
@@ -63,7 +185,7 @@ void ImageProcessor::getBlobNodes() {
       Color detectedColor = ColorTableMethods::xy2color(image, color_table_, x, y, width);
       if ((currentColor != detectedColor || x==width-1) && (x!=0)) {
         // save old run
-        if ((camera_ == Camera::TOP && (!(currentColor == c_FIELD_GREEN || currentColor == c_UNDEFINED || currentColor == c_ROBOT_WHITE || currentColor == c_WHITE))) || 
+        if ((camera_ == Camera::TOP && (!(currentColor == c_FIELD_GREEN || currentColor == c_ORANGE || currentColor == c_UNDEFINED || currentColor == c_ROBOT_WHITE || currentColor == c_WHITE))) || 
             (camera_ == Camera::BOTTOM && (currentColor == c_ORANGE))) {
           struct TreeNode* treeNode = colorDisjointSets[currentColor].makeset(y, rowStart, rowEnd, currentColor);
           colorRowNodeMap[currentColor][y].push_back(treeNode);
@@ -115,116 +237,180 @@ void ImageProcessor::getBlobNodes() {
    }
 }
 
-
-void ImageProcessor::updateTransform(){
-  BodyPart::Part camera;
-  if(camera_ == Camera::TOP)
-    camera = BodyPart::top_camera;
-  else
-    camera = BodyPart::bottom_camera;
-
-  Pose3D pcamera;
-  if(enableCalibration_) {
-    float joints[NUM_JOINTS], sensors[NUM_SENSORS], dimensions[RobotDimensions::NUM_DIMENSIONS];
-    memcpy(joints, vblocks_.joint->values_, NUM_JOINTS * sizeof(float));
-    memcpy(sensors, vblocks_.sensor->values_, NUM_SENSORS * sizeof(float));
-    memcpy(dimensions, vblocks_.robot_info->dimensions_.values_, RobotDimensions::NUM_DIMENSIONS * sizeof(float));
-    Pose3D *rel_parts = vblocks_.body_model->rel_parts_, *abs_parts = vblocks_.body_model->abs_parts_;
-    calibration_->applyJoints(joints);
-    calibration_->applySensors(sensors);
-    calibration_->applyDimensions(dimensions);
-    ForwardKinematics::calculateRelativePose(joints, rel_parts, dimensions);
-#ifdef TOOL
-    Pose3D base = ForwardKinematics::calculateVirtualBase(calibration_->useLeft, rel_parts);
-    ForwardKinematics::calculateAbsolutePose(base, rel_parts, abs_parts);
-#else
-    ForwardKinematics::calculateAbsolutePose(sensors, rel_parts, abs_parts);
-#endif
-    cmatrix_.setCalibration(*calibration_);
-    pcamera = abs_parts[camera];
-  }
-  else pcamera = vblocks_.body_model->abs_parts_[camera];
-
-  if(vblocks_.robot_state->WO_SELF == WO_TEAM_COACH) {
-    auto self = vblocks_.world_object->objects_[vblocks_.robot_state->WO_SELF];
-    pcamera.translation.z += self.height;
-  }
-
-  cmatrix_.updateCameraPose(pcamera);
+bool ImageProcessor::tiltAngleTest(struct TreeNode * treenode, float threshold){
+  float imgCenterY = 120.0;
+  float BBoxCentroidY = (treenode->bottomright->y - treenode->topleft->y)/2;
+  float FocalPixConstant = 120;
+  float RoboCamTilt = 0;
+  float tilt = atan((imgCenterY - BBoxCentroidY)/FocalPixConstant) + RoboCamTilt;
+  return (tilt <= threshold);
 }
 
-bool ImageProcessor::isTopCamera() {
-  return (camera_ == Camera::TOP);
+bool ImageProcessor::isSquare(struct TreeNode * treeNode){
+  float width = (treeNode)->bottomright->x - (treeNode)->topleft->x;
+  float height = (treeNode)->bottomright->y - (treeNode)->topleft->y;
+  float ratio = abs((width-height)/(width+height));
+  return (ratio<=0.3);    
 }
 
-bool ImageProcessor::isRawImageLoaded() {
-  if(camera_ == Camera::TOP)
-    return vblocks_.image->img_top_;
-  return vblocks_.image->img_bottom_;
+bool ImageProcessor::isAtleastMinimumSize(struct TreeNode * treeNode){
+  float width = (treeNode)->bottomright->x - (treeNode)->topleft->x;
+  float height = (treeNode)->bottomright->y - (treeNode)->topleft->y;
+  return ((width>=5)&&(height>=5));
 }
 
-int ImageProcessor::getImageHeight() {
-  return iparams_.height;
+bool ImageProcessor::hasBallAspectRatio(struct TreeNode * treeNode) {
+  float width = (treeNode)->bottomright->x - (treeNode)->topleft->x;
+  float height = (treeNode)->bottomright->y - (treeNode)->topleft->y;
+  return (abs((width/height)-1) < 0.3);
 }
 
-int ImageProcessor::getImageWidth() {
-  return iparams_.width;
+bool ImageProcessor::hasMinimumArea(struct TreeNode * treeNode){
+  return (treeNode->numberOfPixels > 24);
 }
 
-double ImageProcessor::getCurrentTime() {
-  return vblocks_.frame_info->seconds_since_start;
-}
-
-void ImageProcessor::setCalibration(RobotCalibration calibration){
-  if(calibration_) delete calibration_;
-  calibration_ = new RobotCalibration(calibration);
-}
-
-void ImageProcessor::processFrame(){
-  if(vblocks_.robot_state->WO_SELF == WO_TEAM_COACH && camera_ == Camera::BOTTOM) return;
-  visionLog(30, "Process Frame camera %i", camera_);
-
-  updateTransform();
+bool ImageProcessor::isCircularArea(struct TreeNode * treeNode){
   
-  // Horizon calculation
-  visionLog(30, "Calculating horizon line");
-  HorizonLine horizon = HorizonLine::generate(iparams_, cmatrix_, 30000);
-  vblocks_.robot_vision->horizon = horizon;
-  visionLog(30, "Classifying Image", camera_);
-  if(!classifier_->classifyImage(color_table_)) return;
-  detectBall();
-  beacon_detector_->findBeacons(colorDisjointSets,this);
-  line_detector_->findLinePointCandidates(this);
+  float width = (treeNode)->bottomright->x - (treeNode)->topleft->x;
+  float height = (treeNode)->bottomright->y - (treeNode)->topleft->y;
+  float expectedArea = width * height;
+  return (treeNode->numberOfPixels / expectedArea) > .6;
 }
-
-void ImageProcessor::detectBall() {
-}
-
-void ImageProcessor::findBall(int& imageX, int& imageY) {
-  imageX = imageY = 0;
-}
-
-int ImageProcessor::getTeamColor() {
-  return vblocks_.robot_state->team_;
-}
-
-void ImageProcessor::SetColorTable(unsigned char* table) {
-  color_table_ = table;
-}
-
-float ImageProcessor::getHeadChange() const {
-  if (vblocks_.joint == NULL)
-    return 0;
-  return vblocks_.joint->getJointDelta(HeadPan);
-}
-
 std::vector<BallCandidate*> ImageProcessor::getBallCandidates() {
-  return std::vector<BallCandidate*>();
+  
+  std::vector<struct BallCandidate*> ballNodes;
+  struct DisjointSet disjointSet = colorDisjointSets[c_ORANGE];
+  for(std::set<struct TreeNode *>::iterator treeNode = disjointSet.rootSet.begin(); treeNode!= disjointSet.rootSet.end(); ++treeNode) {
+    float width = (*treeNode)->bottomright->x - (*treeNode)->topleft->x;
+    float height = (*treeNode)->bottomright->y - (*treeNode)->topleft->y;
+    float ratio = abs((width-height)/(width+height));
+    // std::cout<<isSquare(*treeNode)<<" "<<(isAtleastMinimumSize(*treeNode))<<" "<<isCircularArea(*treeNode)<<" "<<hasMinimumArea(*treeNode)<<" "<<hasBallAspectRatio(*treeNode)<< endl;
+    if(isSquare(*treeNode) && (isAtleastMinimumSize(*treeNode)) && isCircularArea(*treeNode) && hasMinimumArea(*treeNode) && hasBallAspectRatio(*treeNode)){
+      struct BallCandidate* ball = new BallCandidate();
+      ball->width = width;
+      ball->height = height;
+      ball->centerX = (*treeNode)->topleft->x + (width/2);
+      ball->centerY = (*treeNode)->topleft->y + (height/2);
+      ball->radius = (width > height) ? (width/2) : (height/2);
+      ballNodes.push_back(ball);
+    }  
+  }
+  
+  return ballNodes;
 }
 
 BallCandidate* ImageProcessor::getBestBallCandidate() {
-  return NULL;
+  
+  // TODO(ankitade): choose most appropriate one instead of best.  
+  std::vector<struct BallCandidate*> balls = getBallCandidates();
+  float margin = 100000.0;
+  BallCandidate* candidate = NULL;
+  for(std::vector<struct BallCandidate*>::iterator ball = balls.begin(); ball != balls.end(); ++ball) {
+    // Position p = cmatrix_.getWorldPosition((*ball)->centerX, (*ball)->centerY, (*ball)->height); 
+    Position q = cmatrix_.getWorldPosition((*ball)->centerX, (*ball)->centerY, 32.5);
+    
+    if(camera_ == Camera::TOP) {
+      float h = cmatrix_.groundDistance(q);
+      float calculatedCameraWidth = cmatrix_.getCameraWidthByDistance(h, 65);
+      float calculatedCameraHeight = cmatrix_.getCameraHeightByDistance(h, 65);
+      float expectedValue = (*ball)->width > (*ball)->height ? calculatedCameraWidth : calculatedCameraHeight;
+      float actualValue = (*ball)->width > (*ball)->height ? (*ball)->width : (*ball)->height;
+      float currentMargin = abs(expectedValue - actualValue);      
+      if (currentMargin < 6 && currentMargin < margin) {        
+        candidate = *ball;
+        margin = currentMargin;
+      }
+    } else {
+    //  std::cout << (*ball)-> width << endl;      
+      if (((*ball)->width < 65) && ((*ball)->width > 25) && ((*ball)->height < 65) && ((*ball)->height > 25)) {
+        return *ball;
+      } 
+    }
+  }
+  return candidate;
 }
+
+bool ImageProcessor::goalAspectRatioTest(struct TreeNode * node){
+
+  float height = node->bottomright->y - node->topleft->y;
+  float width = node->bottomright->x - node->topleft->x;  
+  float ratio = width/height; 
+  return (ratio>=1.1 && ratio<=3.0);
+}
+
+bool ImageProcessor::hasGreenBelow(struct TreeNode * node) {
+  return true;
+}
+
+void ImageProcessor::detectGoal() {
+  TreeNode* goalCandidate = getBestGoalCandidate();
+  if(!goalCandidate) return; // function defined elsewhere that fills in imageX, imageY by reference
+  WorldObject* goal = &vblocks_.world_object->objects_[WO_OWN_GOAL];
+
+  float width = goalCandidate->bottomright->x - goalCandidate->topleft->x;
+  float height = goalCandidate->bottomright->y - goalCandidate->topleft->y;
+  int imageX = goalCandidate->topleft->x + (width/2);
+  int imageY = goalCandidate->topleft->y + (height/2);
+  goal->imageCenterX = imageX;
+  goal->imageCenterY = imageY;
+
+  Position p = cmatrix_.getWorldPosition(imageX, imageY);
+  goal->visionBearing = cmatrix_.bearing(p);
+  goal->visionElevation = cmatrix_.elevation(p);
+  goal->visionDistance = cmatrix_.groundDistance(p);
+  goal->seen = true;
+}
+
+std::vector<TreeNode*> ImageProcessor::getGoalCandidates() {
+  
+  std::vector<struct TreeNode*> goalNodes;
+  struct DisjointSet disjointSet = colorDisjointSets[c_BLUE];
+  for(std::set<struct TreeNode *>::iterator treeNode = disjointSet.rootSet.begin(); treeNode!= disjointSet.rootSet.end(); ++treeNode) {
+    float width = (*treeNode)->bottomright->x - (*treeNode)->topleft->x;
+    float height = (*treeNode)->bottomright->y - (*treeNode)->topleft->y;
+    float area = width * height;
+    float numberPixels = (*treeNode)->numberOfPixels;
+    
+    if(numberPixels > 150) {
+      //std::cout << (*treeNode)->bottomright->x << " " << (*treeNode)->bottomright->y << " " << (*treeNode)->topleft->x << " " << (*treeNode)->topleft->y << endl;
+    }
+
+    if((width>=5) && (height>=5) && ((numberPixels/area) > .2) && (numberPixels > 1100) && hasGreenBelow((*treeNode))){
+      goalNodes.push_back(*treeNode);
+    }  
+  }
+  
+  return goalNodes;
+}
+
+bool compFunction(struct TreeNode *t1, struct TreeNode *t2){
+  return (t1->numberOfPixels > t2->numberOfPixels);
+}
+
+struct TreeNode* ImageProcessor::getBestGoalCandidate(){
+    
+  std::vector<struct TreeNode *> goals = getGoalCandidates();
+  std::sort(goals.begin(),goals.end(), compFunction);
+  if (goals.size() >= 2) {
+    goals[0]->actAsParent(goals[1]);
+  }
+ /* for(std::vector<struct TreeNode *>::iterator goal = goals.begin(); goal != goals.end(); ++goal){
+    float width = (*goal)->bottomright->x - (*goal)->topleft->x;
+    float height = (*goal)->bottomright->y - (*goal)->topleft->y;
+    float centerX = (*goal)->topleft->x + (width/2);
+    float centerY = (*goal)->topleft->y + (height/2);
+    Position p = cmatrix_.getWorldPosition(centerX, centerY, height);
+    float g = cmatrix_.groundDistance(p);
+  
+    if (goalAspectRatioTest(*goal)) {
+      return *goal;
+    }
+  }*/
+  if (goals.size() > 0) {
+    return goals[0];
+  }
+}
+
 
 void ImageProcessor::enableCalibration(bool value) {
   enableCalibration_ = value;
@@ -233,3 +419,4 @@ void ImageProcessor::enableCalibration(bool value) {
 bool ImageProcessor::isImageLoaded() {
   return vblocks_.image->loaded_;
 }
+

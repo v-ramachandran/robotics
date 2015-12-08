@@ -10,7 +10,7 @@
 struct WorldObjectBlock : public MemoryBlock {
  public:
   WorldObjectBlock()  {
-    header.version = 3;
+    header.version = 4;
     header.size = sizeof(WorldObjectBlock);
   }
 

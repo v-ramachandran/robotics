@@ -72,3 +72,6 @@ memory/SpeechBlock.h
 memory/LocalizationBlock.h
 memory/ImageBlock.h
 memory/AudioProcessingBlock.h
+
+vision/structures/BoundarySegment.h
+

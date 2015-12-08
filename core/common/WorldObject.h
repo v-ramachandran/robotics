@@ -3,7 +3,7 @@
 
 #include <math/Geometry.h>
 #include <common/Enum.h>
-
+#include <vision/structures/BoundarySegment.h>
 /**
  * \enum The types of world objects that exist.
  */
@@ -122,10 +122,6 @@ ENUM(WorldObjectType,   // Types of objects
   WO_OWN_LEFT_GOALBAR,
   WO_OWN_RIGHT_GOALBAR,
 
-  // Boundary segment
-  WO_TOP_BOUNDARY_SEGMENT,
-  WO_BOTTOM_BOUNDARY_SEGMENT,
-
   // penalty crosses
   WO_UNKNOWN_PENALTY_CROSS,
   WO_OWN_PENALTY_CROSS,
@@ -133,6 +129,11 @@ ENUM(WorldObjectType,   // Types of objects
 
   // cluster of robots
   WO_ROBOT_CLUSTER,
+
+  // Boundary segment
+  WO_TOP_BOUNDARY_SEGMENT,
+  WO_BOTTOM_BOUNDARY_SEGMENT,
+  WO_MID_BOUNDARY_SEGMENT,
 
   NUM_WORLD_OBJS,
 
@@ -264,7 +265,8 @@ public:
 
   // for boundary lines
   BoundarySegment boundarySegment;
-  
+  BoundarySegment b;  
+
   // heights of beacons/goals/etc in the world
   float lowerHeight; ///< The height of the lower part of this object.
   float upperHeight; ///< The height of the upper part of this object.

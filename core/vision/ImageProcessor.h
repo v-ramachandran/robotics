@@ -31,9 +31,7 @@ class ImageProcessor {
     LineDetector* getLineDetector();
     unsigned char* getSegImg();
     unsigned char* getColorTable();
-    void getBlobNodes();
     bool isRawImageLoaded();
-    bool isTopCamera();
     int getImageHeight();
     int getImageWidth();
     const ImageParams& getImageParams() const { return iparams_; }
@@ -41,10 +39,23 @@ class ImageProcessor {
     void setCalibration(RobotCalibration);
     void enableCalibration(bool value);
     void updateTransform();
+    bool isTopCamera();
+    bool tiltAngleTest(struct TreeNode * treenode, float threshold);
+    bool isSquare(struct TreeNode * treeNode);
+    bool isAtleastMinimumSize(struct TreeNode * treeNode);
+    bool isCircularArea(struct TreeNode * treeNode);
+    bool hasMinimumArea(struct TreeNode * treeNode);
+    bool hasBallAspectRatio(struct TreeNode * treeNode);
+    bool goalAspectRatioTest(struct TreeNode * node);
+    bool hasGreenBelow(struct TreeNode * node);
     std::vector<BallCandidate*> getBallCandidates();
+    std::vector<TreeNode*> getGoalCandidates();
     BallCandidate* getBestBallCandidate();
+    struct TreeNode* getBestGoalCandidate();
+    void getBlobNodes();
     bool isImageLoaded();
     void detectBall();
+    void detectGoal();
     void findBall(int& imageX, int& imageY);
   private:
     int getTeamColor();
@@ -58,12 +69,11 @@ class ImageProcessor {
     VisionParams vparams_;
     unsigned char* color_table_;
     TextLogger* textlogger;
+    std::map<Color, struct DisjointSet> colorDisjointSets;
 
     float getHeadPan() const;
     float getHeadTilt() const;
     float getHeadChange() const;
-
-    std::map<Color, struct DisjointSet> colorDisjointSets;
 
     RobotCalibration* calibration_;
     bool enableCalibration_;

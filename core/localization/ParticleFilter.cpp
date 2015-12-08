@@ -120,13 +120,10 @@ void ParticleFilter::propagateToNext() {
 	
   const auto& disp = cache_.odometry->displacement;
   log(41, "Updating particles from odometry: %2.f,%2.f @ %2.8f", disp.translation.x, disp.translation.y, disp.rotation * RAD_T_DEG);
-  //printf("Updating particles from odometry: %2.f,%2.f @ %2.8f \n", disp.translation.x, disp.translation.y, disp.rotation);
   for(auto& p : particles()) { 
     float meanT = disp.rotation + p.t;
     p.t = disp.rotation + p.t;
-    //    if (!isEqual(disp.rotation, 0.0)) {
     p.t = p.t + rand_.sampleN(0, 0.05);
-    //    }
     float meanX = disp.translation.x + p.x;
     p.x = disp.translation.x * cos(p.t) + disp.translation.y * sin(p.t) + p.x;
     float meanY = disp.translation.y  + p.y;
@@ -153,11 +150,11 @@ bool ParticleFilter::checkBeaconVisibility(Point2D beaconLoc, Particle p ){
     pan = cache_.joint->getJointValue(HeadPan);
   }
   angle = Point2D(p.x,p.y).getBearingTo(beaconLoc, p.t);
-  return ( abs(angle-pan) <= M_PI/6.0);
+  return ( abs(angle-pan) <= (1.0*M_PI/6.0));
 }
 
 float ParticleFilter::createParticleWeights() {
-  int beaconColors[6] = {WO_BEACON_YELLOW_PINK, WO_BEACON_PINK_YELLOW, WO_BEACON_PINK_BLUE, WO_BEACON_BLUE_PINK, WO_BEACON_YELLOW_BLUE, WO_BEACON_BLUE_YELLOW };
+  int beaconColors[6] = {WO_BEACON_YELLOW_PINK, WO_BEACON_PINK_YELLOW, WO_BEACON_BLUE_PINK, WO_BEACON_PINK_BLUE, WO_BEACON_YELLOW_BLUE, WO_BEACON_BLUE_YELLOW };
   int maxPenalty = 70;
   int maxPenaltyPadding = 20;
   int orientationPenaltyScale = 150;
@@ -165,6 +162,7 @@ float ParticleFilter::createParticleWeights() {
   float averageWeight = 0.0;
   for(auto& p : particles()) {
     p.w = 600;
+
     for (int i = 0; i < 6; ++i) {
       auto &object = cache_.world_object->objects_[beaconColors[i]];
       if (object.seen && checkBeaconVisibility(object.loc, p)) {
@@ -180,7 +178,7 @@ float ParticleFilter::createParticleWeights() {
         float probability = gaussianProbability(measurementDistance, meanDistance, distanceVariance);
         float penalty = min(150,(1-probability)*200); // p=0 -> 50, p=1 -> 0
         p.w = p.w - penalty;
-	float rotationProbability = gaussianProbability(object.visionBearing, Point2D(p.x,p.y).getBearingTo(object.loc, p.t), 0.01);
+	      float rotationProbability = gaussianProbability(object.visionBearing, Point2D(p.x,p.y).getBearingTo(object.loc, p.t), 0.01);
         p.w = p.w - orientationPenaltyScale*(1-rotationProbability);
       } else if (!(object.seen) && !(checkBeaconVisibility(object.loc, p))) {
         p.w = p.w - min(50, abs((rand_.sampleN(0,1))*35));
@@ -188,10 +186,15 @@ float ParticleFilter::createParticleWeights() {
         p.w = 150;
         break;
       } else if ((object.seen) && !(checkBeaconVisibility(object.loc, p))) {
-	p.w = 50;
-	break;
+	      p.w = 50;
+	      break;
       }
     } 
+
+    // if points seen && (object 
+    if ((abs(p.x) <= 1500 && abs(p.y) <= 1000) && !(cache_.world_object->objects_[WO_TOP_BOUNDARY_SEGMENT].seen || cache_.world_object->objects_[WO_BOTTOM_BOUNDARY_SEGMENT].seen)) {
+      p.w = 50;
+    }
     averageWeight += (p.w / particles().size()); 
   }
   
@@ -271,7 +274,14 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
 
   // Copy sampled particles back
   for(int index = 0; index < (numParticles-noiseParticles); index++) {
-		particles()[index] = resampledParticles[index];
+  //  resampledParticles[index];	
+//    std::cout << resampledParticles[index].x << " " << resampledParticles[index].y << " " << resampledParticles[index].t << " " << resampledParticles[index].w << endl;
+  //  std::cout << particles()[index].x << " " << particles()[index].y << " " << particles()[index].t << " " << particles()[index].w << endl;
+  	particles()[index] = resampledParticles[index];
+    // particles()[index].x = resampledParticles[index].x;
+    // particles()[index].y = resampledParticles[index].y;  
+    // particles()[index].t = resampledParticles[index].t;  
+    // particles()[index].w = resampledParticles[index].w;  
   }
 
   float y = mean_.y;
@@ -286,7 +296,6 @@ void ParticleFilter::resampleByImportance(float wSlow, float wFast) {
 }
 
 void ParticleFilter::filter(){
-  
   propagateToNext();
   float wAverage = createParticleWeights();
   wSlow += alphaSlow * (wAverage - wSlow);

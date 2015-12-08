@@ -45,7 +45,7 @@ bool BeaconDetector::checkColorUpperPixels(ImageProcessor *processor, int leftX,
   float ratioBlue = (float)countBlue/(float)(width*5);
   float ratioPink = (float)countPink/(float)(width*5);
   float ratioYellow = (float)countYellow/(float)(width*5);
-  return (ratioBlue > 0.5 || ratioPink > 0.5 || ratioYellow > 0.5); 
+  return (ratioPink > 0.5 || ratioYellow > 0.5); 
 }
 
 vector<int> BeaconDetector::findColoredBeacon(Color color1, Color color2, std::map<Color, struct DisjointSet> colorDisjointSets, ImageProcessor *processor) {
@@ -114,8 +114,7 @@ void BeaconDetector::findBeacons(std::map<Color, struct DisjointSet> colorDisjoi
     object.visionBearing = cmatrix_.bearing(position);
     object.seen = true;
     object.fromTopCamera = camera_ == Camera::TOP;
-    std::cout<<"distance! "<<getName(beacon.first)<<" "<<object.imageCenterX<<" "<< object.imageCenterY<<" "<< object.visionDistance<<endl;
+  //  std::cout<<"distance! "<<getName(beacon.first)<<" "<<object.imageCenterX<<" "<< object.imageCenterY<<" "<< object.visionDistance<<endl;
     visionLog(30, "saw %s at (%i,%i) with calculated distance %2.4f", getName(beacon.first), object.imageCenterX, object.imageCenterY, object.visionDistance);
   }
 }
-
