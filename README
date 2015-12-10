@@ -1,0 +1,14 @@
+The main files that we have added or modified are : 
+Vision/ LineDetector.cpp : Code for edge detection and filtration of edge pixels based on localization
+Vision/ LineDetector.h
+Vision/ BoundaryLineMethods.h : Functions to check if an edge pixel lies on the field boundary
+Vision/ structures/ BoundarySegment.h : Data structure for storing boundary segments
+Vision/ structures/ LinePoint.h : Data structure for storing edge pixels
+Localization/ ParticleFilter.cpp : Added a feedback loop from line detection to penalize particles inside the field that do not detect lines
+Common/ WorldObject.cpp : Added new world objects
+UTNaoTool/ VisionWindow_Draw.cpp : Code for drawing the candidate edge pixels and detected boundary pixels
+
+We have added a new world objects called WO_TOP_BOUNDARY_SEGMENT and WO_BOTTOM_BOUNDARY_SEGMENT to store the detected boundary lines
+and added corresponding drawing function to draw the edge pixels. 
+
+To compile the code, use the standard compilation command from the directory nao/trunk/build : ./compile everything
